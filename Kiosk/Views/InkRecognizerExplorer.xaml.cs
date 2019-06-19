@@ -31,19 +31,14 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
-using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ServiceHelpers;
-using ServiceHelpers.Models;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
-using Windows.UI.Popups;
-using Windows.UI.Xaml;
+using Windows.UI.Core;
+using Windows.UI.Input.Inking;
+
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Navigation;
+
 
 namespace IntelligentKioskSample.Views
 {
@@ -53,6 +48,36 @@ namespace IntelligentKioskSample.Views
         public InkRecognizerExplorer()
         {
             this.InitializeComponent();
+
+            string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
+
+            var inkPresenter = inkCanvas.InkPresenter;
+            inkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
+
+            inkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
+            inkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
+            inkPresenter.StrokesCollected += InkPresenter_StrokesCollected;
+            inkPresenter.StrokesErased += InkPresenter_StrokesErased;
+        }
+
+        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
+        {
+
+        }
+
+        private void InkPresenter_StrokeInputEnded(InkStrokeInput sender, PointerEventArgs args)
+        {
+
+        }
+
+        private void InkPresenter_StrokesCollected(InkPresenter sender, InkStrokesCollectedEventArgs args)
+        {
+
+        }
+
+        private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
+        {
+
         }
     }
 }

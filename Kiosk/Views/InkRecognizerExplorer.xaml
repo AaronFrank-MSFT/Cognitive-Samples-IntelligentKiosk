@@ -10,10 +10,28 @@
     x:Name="mainPage">
 
     <Grid x:Name="MainGrid">
-        <CommandBar x:Name="commandBar" Style="{StaticResource PageTitleCommandBarStyle}">
-            <CommandBar.Content>
-                <TextBlock Text="Ink Recognizer Explorer" Style="{ThemeResource PageTitleTextBlockStyle}"/>
-            </CommandBar.Content>
-        </CommandBar>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <CommandBar x:Name="commandBar" Style="{StaticResource PageTitleCommandBarStyle}">
+                <CommandBar.Content>
+                    <TextBlock Text="Ink Recognizer Explorer" Style="{ThemeResource PageTitleTextBlockStyle}"/>
+                </CommandBar.Content>
+            </CommandBar>
+        </StackPanel>
+        <RelativePanel Margin="50,125,-45,125" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Center" Width="700">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="39*"/>
+                    <ColumnDefinition Width="94*"/>
+                </Grid.ColumnDefinitions>
+                <InkCanvas x:Name="inkCanvas" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch"></InkCanvas>
+            </Grid>
+            <Border RequestedTheme="Light" Background="White" BorderBrush="Black" HorizontalAlignment="Stretch" Margin="0,-44,0,44" VerticalAlignment="Stretch">
+                <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" HorizontalAlignment="Stretch" Margin="3,-3,-3,3" VerticalAlignment="Stretch"/>
+            </Border>
+        </RelativePanel>
     </Grid>
 </Page>
