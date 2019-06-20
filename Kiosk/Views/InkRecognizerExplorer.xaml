@@ -15,23 +15,26 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <StackPanel>
-            <CommandBar x:Name="commandBar" Style="{StaticResource PageTitleCommandBarStyle}">
+            <CommandBar Style="{StaticResource PageTitleCommandBarStyle}">
                 <CommandBar.Content>
                     <TextBlock Text="Ink Recognizer Explorer" Style="{ThemeResource PageTitleTextBlockStyle}"/>
                 </CommandBar.Content>
             </CommandBar>
         </StackPanel>
         <RelativePanel Margin="50,125,-45,125" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Border RequestedTheme="Light" Background="White" BorderBrush="Black" HorizontalAlignment="Stretch" Margin="0,-44,0,44" VerticalAlignment="Stretch">
+                <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" HorizontalAlignment="Stretch" Margin="3,-3,-3,3" VerticalAlignment="Stretch">
+                    <InkToolbarBallpointPenButton/>
+                    <InkToolbarEraserButton/>
+                </InkToolbar>
+            </Border>
             <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Center" Width="700">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="39*"/>
-                    <ColumnDefinition Width="94*"/>
+                    <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
-                <InkCanvas x:Name="inkCanvas" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch"></InkCanvas>
+                <InkCanvas x:Name="inkCanvas"/>
             </Grid>
-            <Border RequestedTheme="Light" Background="White" BorderBrush="Black" HorizontalAlignment="Stretch" Margin="0,-44,0,44" VerticalAlignment="Stretch">
-                <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" HorizontalAlignment="Stretch" Margin="3,-3,-3,3" VerticalAlignment="Stretch"/>
-            </Border>
+            <TextBox x:Name="response" Text="JSON:" Margin="711,0,-711,0"/>
         </RelativePanel>
     </Grid>
 </Page>
