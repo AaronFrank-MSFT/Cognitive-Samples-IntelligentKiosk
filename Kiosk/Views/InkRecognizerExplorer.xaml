@@ -22,8 +22,8 @@
             </CommandBar>
         </StackPanel>
         <RelativePanel Margin="50,125,-45,125" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <Border RequestedTheme="Light" Background="White" BorderBrush="Black" HorizontalAlignment="Stretch" Margin="0,-44,0,44" VerticalAlignment="Stretch">
-                <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" HorizontalAlignment="Stretch" Margin="3,-3,-3,3" VerticalAlignment="Stretch">
+            <Border RequestedTheme="Light" Background="White" BorderBrush="Black" Margin="0,-55,0,55" Width="82" Height="40">
+                <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" Margin="0,0,2,0">
                     <InkToolbarBallpointPenButton/>
                     <InkToolbarEraserButton/>
                 </InkToolbar>
@@ -34,7 +34,8 @@
                 </Grid.ColumnDefinitions>
                 <InkCanvas x:Name="inkCanvas"/>
             </Grid>
-            <TextBox x:Name="response" Text="JSON:" Margin="711,0,-711,0"/>
+            <TextBox x:Name="requestJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,515,-700,-590"/>
+            <TextBox x:Name="responseJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="750,0,-1225,-75"/>
         </RelativePanel>
     </Grid>
 </Page>

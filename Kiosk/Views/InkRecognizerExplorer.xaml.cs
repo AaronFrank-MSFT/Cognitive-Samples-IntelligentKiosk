@@ -32,9 +32,13 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ServiceHelpers;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using Windows.Data.Json;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Xaml;
@@ -46,19 +50,19 @@ namespace IntelligentKioskSample.Views
     [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/TranslatorExplorer.png")]
     public sealed partial class InkRecognizerExplorer : Page
     {
+        string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
+        const string endpoint = "https://api.cognitive.microsoft.com";
+        const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
+
         ServiceHelpers.InkRecognizer inkRecognizer;
 
         // Timer to be used to trigger ink recognition
         private readonly DispatcherTimer dispatcherTimer;
-        const double IDLE_TIME = 300;
+        const double IDLE_TIME = 500;
 
         public InkRecognizerExplorer()
         {
             this.InitializeComponent();
-
-            string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-            const string endpoint = "https://api.cognitive.microsoft.com";
-            const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
             inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
             
@@ -68,7 +72,7 @@ namespace IntelligentKioskSample.Views
             inkCanvas.InkPresenter.StrokesCollected += InkPresenter_StrokesCollected;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
-            inkRecognizer = new ServiceHelpers.InkRecognizer();
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Tick += DispatcherTimer_Tick;
@@ -108,22 +112,33 @@ namespace IntelligentKioskSample.Views
 
         public void StartTimer()
         {
-            response.Text = "STARTED";
             dispatcherTimer.Start();
         }
 
         public void StopTimer()
         {
-            response.Text = "STOPPED";
             dispatcherTimer.Stop();
         }
 
-        private void DispatcherTimer_Tick(object sender, object e)
+        private async void DispatcherTimer_Tick(object sender, object e)
         {
             StopTimer();
 
-            var json = inkRecognizer.ConvertInkToJson();
-            response.Text = json.ToString();
+            try
+            {
+                JsonObject json = inkRecognizer.ConvertInkToJson();
+                string requestString = inkRecognizer.FormatJson(json.Stringify());
+                requestJson.Text = requestString;
+
+                var response = await inkRecognizer.RecognizeAsync(json);
+                string responseString = await response.Content.ReadAsStringAsync();
+                responseString = inkRecognizer.FormatJson(responseString);
+                responseJson.Text = responseString;
+            }
+            catch (Exception ex)
+            {
+                responseJson.Text = ex.Message;
+            }
         }
     }
 }
