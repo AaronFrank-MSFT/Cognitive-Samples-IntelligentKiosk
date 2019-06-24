@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -15,7 +16,8 @@ namespace ServiceHelpers
     {
         string inkRecognitionUrl;
         HttpClient httpClient;
-        IDictionary<uint, InkStroke> strokeMap = new Dictionary<uint, InkStroke>();
+
+        public IDictionary<uint, InkStroke> strokeMap = new Dictionary<uint, InkStroke>();
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {

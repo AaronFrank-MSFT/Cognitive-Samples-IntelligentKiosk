@@ -32,6 +32,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ServiceHelpers;
@@ -39,6 +40,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using Windows.Data.Json;
+using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Xaml;
@@ -126,18 +128,44 @@ namespace IntelligentKioskSample.Views
 
             try
             {
-                JsonObject json = inkRecognizer.ConvertInkToJson();
-                string requestString = inkRecognizer.FormatJson(json.Stringify());
-                requestJson.Text = requestString;
+                if(inkRecognizer.strokeMap.Count > 0)
+                {
+                    // Convert Ink to JSON for request and display it
+                    JsonObject json = inkRecognizer.ConvertInkToJson();
+                    requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
 
-                var response = await inkRecognizer.RecognizeAsync(json);
-                string responseString = await response.Content.ReadAsStringAsync();
-                responseString = inkRecognizer.FormatJson(responseString);
-                responseJson.Text = responseString;
+                    // Recognize Ink from JSON and display response
+                    var response = await inkRecognizer.RecognizeAsync(json);
+                    string responseString = await response.Content.ReadAsStringAsync();
+                    responseJson.Text = inkRecognizer.FormatJson(responseString);
+
+                    // Draw result on right side canvas
+                    resultCanvas.Invalidate();
+                }
+                else
+                {
+                    // Clear request/response JSON textboxes if there is no strokes on canvas
+                    requestJson.Text = string.Empty;
+                    responseJson.Text = string.Empty;
+                    resultCanvas.Invalidate();
+                }
             }
+
             catch (Exception ex)
             {
                 responseJson.Text = ex.Message;
+            }
+        }
+
+        private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            if (!(responseJson.Text == string.Empty))
+            {
+                args.DrawingSession.DrawText("it works", 10, 10, Colors.Black);
+            }
+            else
+            {
+                args.DrawingSession.Clear(Colors.White);
             }
         }
     }
