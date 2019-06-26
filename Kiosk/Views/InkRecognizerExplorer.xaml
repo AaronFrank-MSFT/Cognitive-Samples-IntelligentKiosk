@@ -25,20 +25,20 @@
         </StackPanel>
         <Pivot Margin="20,20,-20,0" Grid.Row="1">
             <PivotItem Header="Canvas" Margin="-1,15,25,-145">
-                <RelativePanel Margin="21,37,-16,213" Grid.Row="1">
+                <RelativePanel Margin="15,37,-10,213" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Border RequestedTheme="Light" Background="White" BorderBrush="Black" Width="80" Height="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" Margin="0,0,2,0" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
                             <InkToolbarBallpointPenButton/>
                             <InkToolbarEraserButton HorizontalAlignment="Stretch" Height="40" Margin="-2,0,2,0" VerticalAlignment="Stretch"/>
                         </InkToolbar>
                     </Border>
-                    <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="700" Margin="0,57,0,0">
+                    <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="650" Margin="1,55,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
                         <InkCanvas x:Name="inkCanvas"/>
                     </Grid>
-                    <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="700" Margin="738,57,0,0">
+                    <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="650" Margin="666,55,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
@@ -48,8 +48,8 @@
             </PivotItem>
             <PivotItem Header="JSON" Margin="-1,13,25,-163" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                 <RelativePanel Margin="24,39,-24,-39" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <TextBox x:Name="requestJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="750" Width="500" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                    <TextBox x:Name="responseJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Width="500" Height="750" Margin="559,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <TextBox x:Name="requestJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="650" Width="500" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <TextBox x:Name="responseJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="650" Width="500"  Margin="559,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 </RelativePanel>
             </PivotItem>
         </Pivot>

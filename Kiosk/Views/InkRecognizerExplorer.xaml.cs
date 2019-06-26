@@ -55,7 +55,7 @@ using Windows.UI.Xaml.Controls;
 
 namespace IntelligentKioskSample.Views
 {
-    [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/TranslatorExplorer.png")]
+    [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
     public sealed partial class InkRecognizerExplorer : Page
     {
         // API key and endpoint information for ink recognition request
