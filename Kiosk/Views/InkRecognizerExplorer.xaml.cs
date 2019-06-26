@@ -58,12 +58,12 @@ namespace IntelligentKioskSample.Views
     [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/TranslatorExplorer.png")]
     public sealed partial class InkRecognizerExplorer : Page
     {
+        // API key and endpoint information for ink recognition request
         string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
         const string endpoint = "https://api.cognitive.microsoft.com";
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
         ServiceHelpers.InkRecognizer inkRecognizer;
-
         CanvasTextFormat textFormat;
         NumberFormatInfo culture;
 
@@ -168,6 +168,13 @@ namespace IntelligentKioskSample.Views
             }
         }
 
+        // Dispose Win2D resources to avoid memory leak
+        void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.resultCanvas.RemoveFromVisualTree();
+            this.resultCanvas = null;
+        }
+
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             culture = CultureInfo.InvariantCulture.NumberFormat;
@@ -207,6 +214,9 @@ namespace IntelligentKioskSample.Views
                             case "ellipse":
                                 DrawEllipse(token, sender, args);
                                 break;
+                            case "drawing":
+                                DrawLine(token, sender, args);
+                                break;
                             default:
                                 DrawPolygon(token, sender, args);
                                 break;
@@ -220,7 +230,6 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        #region Draw Text and Shapes
         private void DrawText(string recognizedText, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
             float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
@@ -272,6 +281,23 @@ namespace IntelligentKioskSample.Views
             args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black);
         }
 
+        private void DrawLine(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+            if (height < 4)
+            {
+                float pointAX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
+                float pointAY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+                var pointA = new Vector2(pointAX * dipsPerMm, pointAY * dipsPerMm);
+
+                float pointBX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
+                float pointBY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
+                var pointB = new Vector2(pointBX * dipsPerMm, pointBY * dipsPerMm);
+
+                args.DrawingSession.DrawLine(pointA, pointB, Colors.Black);
+            }
+        }
+
         private void DrawPolygon(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
             if (token["points"].HasValues)
@@ -296,7 +322,7 @@ namespace IntelligentKioskSample.Views
 
                 args.DrawingSession.DrawGeometry(shape, centerPoint, Colors.Black);
             }
+
         }
-        #endregion
     }
 }
