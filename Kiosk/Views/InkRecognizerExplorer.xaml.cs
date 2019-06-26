@@ -32,6 +32,8 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
@@ -43,6 +45,7 @@ using System.Globalization;
 using System.Net.Http;
 using System.Numerics;
 using Windows.Data.Json;
+using Windows.Foundation;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
@@ -61,9 +64,14 @@ namespace IntelligentKioskSample.Views
 
         ServiceHelpers.InkRecognizer inkRecognizer;
 
+        CanvasTextFormat textFormat;
+        NumberFormatInfo culture;
+
         // Timer to be used to trigger ink recognition
         private readonly DispatcherTimer dispatcherTimer;
         const double IDLE_TIME = 500;
+
+        const float dipsPerMm = 96 / 25.4f;
 
         public InkRecognizerExplorer()
         {
@@ -162,10 +170,10 @@ namespace IntelligentKioskSample.Views
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            var textFormat = new CanvasTextFormat();
+            culture = CultureInfo.InvariantCulture.NumberFormat;
+            textFormat = new CanvasTextFormat();
             textFormat.FontSize = 12;
-            const float dipsPerMm = 96 / 25.4f;
-            
+
             if (!(responseJson.Text == string.Empty))
             {
                 var response = JObject.Parse(responseJson.Text);
@@ -180,37 +188,28 @@ namespace IntelligentKioskSample.Views
                         string recognizedText = token.Value<string>("recognizedText");
                         if (recognizedText != null)
                         {
-                            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            float fontSize = float.Parse(token["boundingRectangle"]["height"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            textFormat.FontSize = fontSize * dipsPerMm;
-
-                            args.DrawingSession.DrawText(recognizedText, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black, textFormat);
+                            DrawText(recognizedText, token, sender, args);
                         }
                     }
                     if (category == "inkDrawing")
                     {
                         string recognizedObject = token.Value<string>("recognizedObject");
-                        if (recognizedObject == "circle")
+
+                        switch (recognizedObject)
                         {
-                            float floatX = float.Parse(token["center"]["x"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            float floatY = float.Parse(token["center"]["y"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
-
-                            float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            
-                            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black);
-                        }
-                        if (recognizedObject == "ellipse") 
-                        {
-                            float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-
-                            float floatX = float.Parse(token["center"]["x"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            float floatY = float.Parse(token["center"]["y"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
-                            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
-
-                            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black);
+                            case "square":
+                            case "rectangle":
+                                DrawRectangle(token, sender, args);
+                                break;
+                            case "circle":
+                                DrawCircle(token, sender, args);
+                                break;
+                            case "ellipse":
+                                DrawEllipse(token, sender, args);
+                                break;
+                            default:
+                                DrawPolygon(token, sender, args);
+                                break;
                         }
                     }
                 }
@@ -220,5 +219,84 @@ namespace IntelligentKioskSample.Views
                 args.DrawingSession.Clear(Colors.White);
             }
         }
+
+        #region Draw Text and Shapes
+        private void DrawText(string recognizedText, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
+            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+            float fontSize = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+            textFormat.FontSize = fontSize * dipsPerMm;
+
+            args.DrawingSession.DrawText(recognizedText, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black, textFormat);
+        }
+
+        private void DrawRectangle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
+            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+
+            var rect = new Rect()
+            {
+                X = floatX * dipsPerMm,
+                Y = floatY * dipsPerMm,
+                Height = height * dipsPerMm,
+                Width = width * dipsPerMm
+            };
+
+            args.DrawingSession.DrawRectangle(rect, Colors.Black);
+        }
+
+        private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            float floatX = float.Parse(token["center"]["x"].ToString(), culture);
+            float floatY = float.Parse(token["center"]["y"].ToString(), culture);
+            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
+
+            float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+
+            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black);
+        }
+
+        private void DrawEllipse(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            float floatX = float.Parse(token["center"]["x"].ToString(), culture);
+            float floatY = float.Parse(token["center"]["y"].ToString(), culture);
+            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
+
+            float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+            float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+
+            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black);
+        }
+
+        private void DrawPolygon(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            if (token["points"].HasValues)
+            {
+                float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
+                float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+                var centerPoint = new Vector2(floatX, floatY);
+
+                var pointList = new List<Vector2>();
+                foreach (var item in token["points"])
+                {
+                    float x = float.Parse(item["x"].ToString(), culture);
+                    float y = float.Parse(item["y"].ToString(), culture);
+
+                    var point = new Vector2(x * dipsPerMm, y * dipsPerMm);
+
+                    pointList.Add(point);
+                }
+
+                var points = pointList.ToArray();
+                var shape = CanvasGeometry.CreatePolygon(args.DrawingSession, points);
+
+                args.DrawingSession.DrawGeometry(shape, centerPoint, Colors.Black);
+            }
+        }
+        #endregion
     }
 }
