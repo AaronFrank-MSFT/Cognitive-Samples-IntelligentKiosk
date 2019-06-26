@@ -32,13 +32,16 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ServiceHelpers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
+using System.Numerics;
 using Windows.Data.Json;
 using Windows.UI;
 using Windows.UI.Core;
@@ -159,9 +162,58 @@ namespace IntelligentKioskSample.Views
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
+            var textFormat = new CanvasTextFormat();
+            textFormat.FontSize = 12;
+            const float dipsPerMm = 96 / 25.4f;
+            
             if (!(responseJson.Text == string.Empty))
             {
-                args.DrawingSession.DrawText("it works", 10, 10, Colors.Black);
+                var response = JObject.Parse(responseJson.Text);
+                var jsonArray = (JArray)response.Property("recognitionUnits").Value;
+
+                foreach (var token in jsonArray)
+                {
+                    string category = token.Value<string>("category");
+                    
+                    if (category == "line")
+                    {
+                        string recognizedText = token.Value<string>("recognizedText");
+                        if (recognizedText != null)
+                        {
+                            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            float fontSize = float.Parse(token["boundingRectangle"]["height"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            textFormat.FontSize = fontSize * dipsPerMm;
+
+                            args.DrawingSession.DrawText(recognizedText, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black, textFormat);
+                        }
+                    }
+                    if (category == "inkDrawing")
+                    {
+                        string recognizedObject = token.Value<string>("recognizedObject");
+                        if (recognizedObject == "circle")
+                        {
+                            float floatX = float.Parse(token["center"]["x"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            float floatY = float.Parse(token["center"]["y"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
+
+                            float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            
+                            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black);
+                        }
+                        if (recognizedObject == "ellipse") 
+                        {
+                            float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+
+                            float floatX = float.Parse(token["center"]["x"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            float floatY = float.Parse(token["center"]["y"].ToString(), CultureInfo.InvariantCulture.NumberFormat);
+                            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
+
+                            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black);
+                        }
+                    }
+                }
             }
             else
             {
