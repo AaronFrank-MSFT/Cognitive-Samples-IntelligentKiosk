@@ -27,9 +27,9 @@
             <PivotItem Header="Canvas" Margin="-1,15,25,-145">
                 <RelativePanel Margin="15,37,-10,213" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Border RequestedTheme="Light" Background="White" BorderBrush="Black" Width="80" Height="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <InkToolbar TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" Margin="0,0,2,0" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
+                        <InkToolbar x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" Margin="0,0,2,0" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
                             <InkToolbarBallpointPenButton/>
-                            <InkToolbarEraserButton HorizontalAlignment="Stretch" Height="40" Margin="-2,0,2,0" VerticalAlignment="Stretch"/>
+                            <InkToolbarEraserButton x:Name="eraser" HorizontalAlignment="Stretch" Height="40" Margin="-2,0,2,0" VerticalAlignment="Stretch"/>
                         </InkToolbar>
                     </Border>
                     <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="650" Margin="1,55,0,0">
@@ -43,6 +43,8 @@
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
                         <canvas:CanvasControl x:Name="resultCanvas" Draw="ResultCanvas_Draw"/>
+                        <ProgressRing x:Name="progressRing" Width="30" Height="30"/>
+                        <TextBox x:Name="progressRingText" Text="Recognizing..." Margin="0,265,0,0" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Width="130" Height="Auto" FocusVisualPrimaryBrush="Transparent" BorderBrush="#00000000" RequestedTheme="Light" FontSize="20" FontFamily="Calibri"/>
                     </Grid>
                 </RelativePanel>
             </PivotItem>

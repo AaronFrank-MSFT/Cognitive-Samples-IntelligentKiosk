@@ -49,6 +49,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
+using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
@@ -72,6 +73,7 @@ namespace IntelligentKioskSample.Views
         const double IDLE_TIME = 500;
 
         const float dipsPerMm = 96 / 25.4f;
+        const float strokeWidth = 5;
 
         public InkRecognizerExplorer()
         {
@@ -141,6 +143,14 @@ namespace IntelligentKioskSample.Views
             {
                 if(inkRecognizer.strokeMap.Count > 0)
                 {
+                    // Clear result canvas before recognition and rendering of results
+                    responseJson.Text = string.Empty;
+                    resultCanvas.Invalidate();
+
+                    progressRing.IsActive = true;
+                    progressRing.Visibility = Visibility.Visible;
+                    progressRingText.Visibility = Visibility.Visible;
+
                     // Convert Ink to JSON for request and display it
                     JsonObject json = inkRecognizer.ConvertInkToJson();
                     requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
@@ -152,6 +162,10 @@ namespace IntelligentKioskSample.Views
 
                     // Draw result on right side canvas
                     resultCanvas.Invalidate();
+
+                    progressRing.IsActive = false;
+                    progressRing.Visibility = Visibility.Collapsed;
+                    progressRingText.Visibility = Visibility.Collapsed;
                 }
                 else
                 {
@@ -177,9 +191,8 @@ namespace IntelligentKioskSample.Views
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            culture = CultureInfo.InvariantCulture.NumberFormat;
             textFormat = new CanvasTextFormat();
-            textFormat.FontSize = 12;
+            culture = CultureInfo.InvariantCulture.NumberFormat;
 
             if (!(responseJson.Text == string.Empty))
             {
@@ -234,9 +247,10 @@ namespace IntelligentKioskSample.Views
         {
             float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
             float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+
             float fontSize = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
             textFormat.FontSize = fontSize * dipsPerMm;
-
+            
             args.DrawingSession.DrawText(recognizedText, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black, textFormat);
         }
 
@@ -255,7 +269,7 @@ namespace IntelligentKioskSample.Views
                 Width = width * dipsPerMm
             };
 
-            args.DrawingSession.DrawRectangle(rect, Colors.Black);
+            args.DrawingSession.DrawRectangle(rect, Colors.Black, strokeWidth);
         }
 
         private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -266,7 +280,7 @@ namespace IntelligentKioskSample.Views
 
             float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
 
-            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black);
+            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black, strokeWidth);
         }
 
         private void DrawEllipse(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -278,23 +292,24 @@ namespace IntelligentKioskSample.Views
             float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
             float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
 
-            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black);
+            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black, strokeWidth);
         }
 
         private void DrawLine(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
             float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
-            if (height < 4)
+            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+     
+            if (height <= 10 && width >= 5)
             {
                 float pointAX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
                 float pointAY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
                 var pointA = new Vector2(pointAX * dipsPerMm, pointAY * dipsPerMm);
 
                 float pointBX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
-                float pointBY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
-                var pointB = new Vector2(pointBX * dipsPerMm, pointBY * dipsPerMm);
+                var pointB = new Vector2(pointBX * dipsPerMm, pointAY * dipsPerMm);
 
-                args.DrawingSession.DrawLine(pointA, pointB, Colors.Black);
+                args.DrawingSession.DrawLine(pointA, pointB, Colors.Black, strokeWidth);
             }
         }
 
@@ -320,7 +335,7 @@ namespace IntelligentKioskSample.Views
                 var points = pointList.ToArray();
                 var shape = CanvasGeometry.CreatePolygon(args.DrawingSession, points);
 
-                args.DrawingSession.DrawGeometry(shape, centerPoint, Colors.Black);
+                args.DrawingSession.DrawGeometry(shape, centerPoint, Colors.Black, strokeWidth);
             }
 
         }
