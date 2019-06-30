@@ -65,13 +65,9 @@ namespace IntelligentKioskSample.Views
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
         ServiceHelpers.InkRecognizer inkRecognizer;
-        CanvasTextFormat textFormat;
-        NumberFormatInfo culture;
 
-        // Timer to be used to trigger ink recognition
-        private readonly DispatcherTimer dispatcherTimer;
-        const double IDLE_TIME = 500;
-
+        NumberFormatInfo culture = CultureInfo.InvariantCulture.NumberFormat;
+        Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
         const float dipsPerMm = 96 / 25.4f;
         const float strokeWidth = 5;
 
@@ -82,67 +78,31 @@ namespace IntelligentKioskSample.Views
             inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
             
             // Register event handlers for inkCanvas 
-            inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
-            inkCanvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
             inkCanvas.InkPresenter.StrokesCollected += InkPresenter_StrokesCollected;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
-
-            dispatcherTimer = new DispatcherTimer();
-            dispatcherTimer.Tick += DispatcherTimer_Tick;
-            dispatcherTimer.Interval = TimeSpan.FromMilliseconds(IDLE_TIME);
-        }
-
-        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
-        {
-            StopTimer();
-        }
-
-        private void InkPresenter_StrokeInputEnded(InkStrokeInput sender, PointerEventArgs args)
-        {
-            StartTimer();
         }
 
         private void InkPresenter_StrokesCollected(InkPresenter sender, InkStrokesCollectedEventArgs args)
         {
-            StopTimer();
-
             inkRecognizer.AddStrokes(args.Strokes);
-
-            StartTimer();
         }
 
         private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
         {
-            StopTimer();
-
             foreach (var stroke in args.Strokes)
             {
                 inkRecognizer.RemoveStroke(stroke.Id);
             }
-
-            StartTimer();
         }
 
-        public void StartTimer()
+        private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
         {
-            dispatcherTimer.Start();
-        }
-
-        public void StopTimer()
-        {
-            dispatcherTimer.Stop();
-        }
-
-        private async void DispatcherTimer_Tick(object sender, object e)
-        {
-            StopTimer();
-
             try
             {
                 if(inkRecognizer.strokeMap.Count > 0)
-                {
+                { 
                     // Clear result canvas before recognition and rendering of results
                     responseJson.Text = string.Empty;
                     resultCanvas.Invalidate();
@@ -156,12 +116,14 @@ namespace IntelligentKioskSample.Views
                     requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
 
                     // Recognize Ink from JSON and display response
+                    inkCanvas.InkPresenter.IsInputEnabled = false;
                     var response = await inkRecognizer.RecognizeAsync(json);
                     string responseString = await response.Content.ReadAsStringAsync();
                     responseJson.Text = inkRecognizer.FormatJson(responseString);
 
                     // Draw result on right side canvas
                     resultCanvas.Invalidate();
+                    inkCanvas.InkPresenter.IsInputEnabled = true;
 
                     progressRing.IsActive = false;
                     progressRing.Visibility = Visibility.Collapsed;
@@ -175,67 +137,61 @@ namespace IntelligentKioskSample.Views
                     resultCanvas.Invalidate();
                 }
             }
-
             catch (Exception ex)
             {
                 responseJson.Text = ex.Message;
             }
         }
 
-        // Dispose Win2D resources to avoid memory leak
-        void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            this.resultCanvas.RemoveFromVisualTree();
-            this.resultCanvas = null;
-        }
-
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            textFormat = new CanvasTextFormat();
             culture = CultureInfo.InvariantCulture.NumberFormat;
 
             if (!(responseJson.Text == string.Empty))
             {
+
                 var response = JObject.Parse(responseJson.Text);
                 var jsonArray = (JArray)response.Property("recognitionUnits").Value;
 
                 foreach (var token in jsonArray)
                 {
-                    string category = token.Value<string>("category");
-                    
-                    if (category == "line")
-                    {
-                        string recognizedText = token.Value<string>("recognizedText");
-                        if (recognizedText != null)
-                        {
-                            DrawText(recognizedText, token, sender, args);
-                        }
-                    }
-                    if (category == "inkDrawing")
-                    {
-                        string recognizedObject = token.Value<string>("recognizedObject");
+                    string category = token["category"].ToString();
 
-                        switch (recognizedObject)
-                        {
-                            case "square":
-                            case "rectangle":
-                                DrawRectangle(token, sender, args);
-                                break;
-                            case "circle":
-                                DrawCircle(token, sender, args);
-                                break;
-                            case "ellipse":
-                                DrawEllipse(token, sender, args);
-                                break;
-                            case "drawing":
-                                DrawLine(token, sender, args);
-                                break;
-                            default:
-                                DrawPolygon(token, sender, args);
-                                break;
-                        }
+                    switch (category)
+                    {
+                        case "inkBullet":
+                        case "inkWord":
+                            AddText(category, token, sender, args);
+                            break;
+                        case "line":
+                            DrawText(token, sender, args);
+                            break;
+                        case "inkDrawing":
+                            string recognizedObject = token["recognizedObject"].ToString();
+                            switch (recognizedObject)
+                            {
+                                case "square":
+                                case "rectangle":
+                                    DrawRectangle(token, sender, args);
+                                    break;
+                                case "circle":
+                                    DrawCircle(token, sender, args);
+                                    break;
+                                case "ellipse":
+                                    DrawEllipse(token, sender, args);
+                                    break;
+                                case "drawing":
+                                    DrawLine(token, sender, args);
+                                    break;
+                                default:
+                                    DrawPolygon(token, sender, args);
+                                    break;
+                            }
+                            break;
                     }
                 }
+
+                recoText.Clear();
             }
             else
             {
@@ -243,15 +199,62 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private void DrawText(string recognizedText, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void AddText(string category, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
+            string recognizedText = token["recognizedText"].ToString();
+
+            if (recognizedText != null)
+            {
+                int id = int.Parse(token["id"].ToString());
+
+                float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
+
+                uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+                var text = new Tuple<string, Color>(recognizedText, color);
+                recoText.Add(id, text);
+            }
+        }
+
+        private void DrawText(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            var childIds = (JArray)token["childIds"];
             float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
             float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
 
-            float fontSize = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
-            textFormat.FontSize = fontSize * dipsPerMm;
-            
-            args.DrawingSession.DrawText(recognizedText, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black, textFormat);
+            var textFormat = new CanvasTextFormat()
+            {
+                FontSize = height * dipsPerMm,
+                WordWrapping = CanvasWordWrapping.NoWrap,
+                FontFamily = "Ink Free"
+            };
+
+            if (textFormat.FontSize >= 100)
+            {
+                textFormat.FontSize = 100;
+            }
+
+            string text = string.Empty;
+            foreach (var item in childIds)
+            {
+                int id = int.Parse(item.ToString());
+
+                text += recoText[id].Item1 + " ";
+            }
+
+            var textLayout = new CanvasTextLayout(sender.Device, text, textFormat, width, height);
+
+            foreach (var item in childIds)
+            {
+                int id = int.Parse(item.ToString());
+
+                textLayout.SetColor(text.IndexOf(recoText[id].Item1), recoText[id].Item1.Length, recoText[id].Item2);
+            }
+
+            args.DrawingSession.DrawTextLayout(textLayout, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black);
         }
 
         private void DrawRectangle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -269,7 +272,10 @@ namespace IntelligentKioskSample.Views
                 Width = width * dipsPerMm
             };
 
-            args.DrawingSession.DrawRectangle(rect, Colors.Black, strokeWidth);
+            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+            args.DrawingSession.DrawRectangle(rect, color, strokeWidth);
         }
 
         private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -280,7 +286,10 @@ namespace IntelligentKioskSample.Views
 
             float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
 
-            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, Colors.Black, strokeWidth);
+            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+            args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, color, strokeWidth);
         }
 
         private void DrawEllipse(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -292,7 +301,10 @@ namespace IntelligentKioskSample.Views
             float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
             float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
 
-            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, Colors.Black, strokeWidth);
+            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, color, strokeWidth);
         }
 
         private void DrawLine(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -300,7 +312,7 @@ namespace IntelligentKioskSample.Views
             float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
             float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
      
-            if (height <= 10 && width >= 5)
+            if (height <= 10 && width >= 20)
             {
                 float pointAX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
                 float pointAY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
@@ -309,7 +321,10 @@ namespace IntelligentKioskSample.Views
                 float pointBX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
                 var pointB = new Vector2(pointBX * dipsPerMm, pointAY * dipsPerMm);
 
-                args.DrawingSession.DrawLine(pointA, pointB, Colors.Black, strokeWidth);
+                uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+                args.DrawingSession.DrawLine(pointA, pointB, color, strokeWidth);
             }
         }
 
@@ -335,9 +350,28 @@ namespace IntelligentKioskSample.Views
                 var points = pointList.ToArray();
                 var shape = CanvasGeometry.CreatePolygon(args.DrawingSession, points);
 
-                args.DrawingSession.DrawGeometry(shape, centerPoint, Colors.Black, strokeWidth);
+                var strokeIds = (JArray)token["strokeIds"];
+                uint strokeId = uint.MaxValue;
+                foreach (var item in strokeIds)
+                {
+                    var id = uint.Parse(item.ToString());
+                    if (id < strokeId)
+                    {
+                        strokeId = id;
+                    }
+                }
+                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+                args.DrawingSession.DrawGeometry(shape, centerPoint, color, strokeWidth);
             }
 
+        }
+
+        // Dispose Win2D resources to avoid memory leak
+        void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.resultCanvas.RemoveFromVisualTree();
+            this.resultCanvas = null;
         }
     }
 }

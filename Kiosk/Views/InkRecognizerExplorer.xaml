@@ -10,6 +10,16 @@
     mc:Ignorable="d"
     Unloaded="Page_Unloaded"
     x:Name="mainPage">
+    <Page.Resources>
+        <Style x:Key="InkToolBarActionButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="{ThemeResource InkToolbarButtonWidth}"/>
+            <Setter Property="MinHeight" Value="{ThemeResource InkToolbarButtonHeight}"/>
+            <Setter Property="MaxHeight" Value="{ThemeResource InkToolbarButtonHeight}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="{ThemeResource InkToolbarButtonBackgroundThemeBrush}"/>
+            <Setter Property="Foreground" Value="{ThemeResource InkToolbarButtonForegroundThemeBrush}"/>
+        </Style>
+    </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -26,12 +36,13 @@
         <Pivot Margin="20,20,-20,0" Grid.Row="1">
             <PivotItem Header="Canvas" Margin="-1,15,25,-145">
                 <RelativePanel Margin="15,37,-10,213" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                    <Border RequestedTheme="Light" Background="White" BorderBrush="Black" Width="80" Height="40" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <StackPanel Orientation="Horizontal" RequestedTheme="Light" Background="White" BorderBrush="Black" Height="40" Margin="1,0,-20,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <InkToolbar x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" Margin="0,0,2,0" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
                             <InkToolbarBallpointPenButton/>
-                            <InkToolbarEraserButton x:Name="eraser" HorizontalAlignment="Stretch" Height="40" Margin="-2,0,2,0" VerticalAlignment="Stretch"/>
+                            <InkToolbarEraserButton HorizontalAlignment="Stretch" Height="40" Margin="-2,0,2,0" VerticalAlignment="Stretch" IsClearAllVisible="False"/>
                         </InkToolbar>
-                    </Border>
+                        <AppBarButton x:Name="recognizeButton" Content="Recognize" Click="RecognizeButton_Click" Style="{StaticResource InkToolBarActionButton}" Width="100" Height="40"/>
+                    </StackPanel>
                     <Grid Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="650" Margin="1,55,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
