@@ -145,6 +145,14 @@ namespace IntelligentKioskSample.Controls
             new PropertyMetadata(false)
             );
 
+        public static readonly DependencyProperty ShowFaceLandmarksProperty =
+            DependencyProperty.Register(
+            "ShowFaceLandmarks",
+            typeof(bool),
+            typeof(ImageWithFaceBorderUserControl),
+            new PropertyMetadata(false)
+            );
+
         public static readonly DependencyProperty PerformComputerVisionAnalysisProperty =
             DependencyProperty.Register(
             "PerformComputerVisionAnalysis",
@@ -227,6 +235,12 @@ namespace IntelligentKioskSample.Controls
         {
             get { return (bool)GetValue(DetectFaceLandmarksProperty); }
             set { SetValue(DetectFaceLandmarksProperty, (bool)value); }
+        }
+
+        public bool ShowFaceLandmarks
+        {
+            get { return (bool)GetValue(ShowFaceLandmarksProperty); }
+            set { SetValue(ShowFaceLandmarksProperty, value); }
         }
 
         public bool PerformComputerVisionAnalysis
@@ -331,7 +345,7 @@ namespace IntelligentKioskSample.Controls
                     faceUI.BalloonForeground = this.BalloonForeground;
                     faceUI.ShowFaceRectangle(face.FaceRectangle.Width * renderedImageXTransform, face.FaceRectangle.Height * renderedImageYTransform);
 
-                    if (this.DetectFaceLandmarks)
+                    if (this.ShowFaceLandmarks)
                     {
                         faceUI.ShowFaceLandmarks(renderedImageXTransform, renderedImageYTransform, face);
                     }
@@ -392,7 +406,7 @@ namespace IntelligentKioskSample.Controls
                 List<Task> tasks = new List<Task>();
                 if (img.AnalysisResult == null)
                 {
-                    tasks.Add(img.AnalyzeImageAsync(detectCelebrities: true));
+                    tasks.Add(img.AnalyzeImageAsync(new List<Details> { Details.Celebrities, Details.Landmarks }));
                 }
 
                 if (this.PerformOCRAnalysis && (img.TextOperationResult == null || img.TextRecognitionMode != this.TextRecognitionMode))
@@ -468,11 +482,11 @@ namespace IntelligentKioskSample.Controls
                     {
                         foreach (var word in line.Words)
                         {
-                            int[] boundingBox = word?.BoundingBox?.ToArray() ?? new int[] { };
+                            double[] boundingBox = word?.BoundingBox?.ToArray() ?? new double[] { };
                             if (boundingBox.Length == 8)
                             {
-                                double minLeft = renderedImageXTransform * (new List<int>() { boundingBox[0], boundingBox[2], boundingBox[4], boundingBox[6] }).Min();
-                                double minTop = renderedImageYTransform * (new List<int>() { boundingBox[1], boundingBox[3], boundingBox[5], boundingBox[7] }).Min();
+                                double minLeft = renderedImageXTransform * (new List<double>() { boundingBox[0], boundingBox[2], boundingBox[4], boundingBox[6] }).Min();
+                                double minTop = renderedImageYTransform * (new List<double>() { boundingBox[1], boundingBox[3], boundingBox[5], boundingBox[7] }).Min();
                                 var points = new PointCollection()
                                 {
                                     new Windows.Foundation.Point(boundingBox[0] * renderedImageXTransform - minLeft, boundingBox[1] * renderedImageYTransform - minTop),
