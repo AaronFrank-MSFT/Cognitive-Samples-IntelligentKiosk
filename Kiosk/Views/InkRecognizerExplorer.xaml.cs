@@ -47,7 +47,6 @@ using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Media;
 
 namespace IntelligentKioskSample.Views
 {
@@ -64,7 +63,6 @@ namespace IntelligentKioskSample.Views
         NumberFormatInfo culture = CultureInfo.InvariantCulture.NumberFormat;
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
         const float dipsPerMm = 96 / 25.4f;
-        const float strokeWidth = 5;
 
         Symbol TouchWriting = (Symbol)0xED5F;
 
@@ -266,11 +264,6 @@ namespace IntelligentKioskSample.Views
                 FontFamily = "Ink Free"
             };
 
-            if (textFormat.FontSize >= 100)
-            {
-                textFormat.FontSize = 100;
-            }
-
             string text = string.Empty;
             foreach (var item in childIds)
             {
@@ -312,6 +305,10 @@ namespace IntelligentKioskSample.Views
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
             var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
 
+            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+            float strokeWidth = (float)size.Width;
+
+
             args.DrawingSession.DrawRectangle(rect, color, strokeWidth);
         }
 
@@ -325,6 +322,9 @@ namespace IntelligentKioskSample.Views
 
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
             var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+            float strokeWidth = (float)size.Width;
 
             args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, color, strokeWidth);
         }
@@ -340,6 +340,9 @@ namespace IntelligentKioskSample.Views
 
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
             var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+            float strokeWidth = (float)size.Width;
 
             args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, color, strokeWidth);
         }
@@ -361,6 +364,9 @@ namespace IntelligentKioskSample.Views
                 uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
                 var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
 
+                Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+                float strokeWidth = (float)size.Width;
+
                 args.DrawingSession.DrawLine(pointA, pointB, color, strokeWidth);
             }
         }
@@ -369,9 +375,9 @@ namespace IntelligentKioskSample.Views
         {
             if (token["points"].HasValues)
             {
-                float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
-                float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
-                var centerPoint = new Vector2(floatX, floatY);
+                float floatX = float.Parse(token["center"]["x"].ToString(), culture);
+                float floatY = float.Parse(token["center"]["y"].ToString(), culture);
+                var centerPoint = new Vector2(floatX / dipsPerMm, floatY / dipsPerMm);
 
                 var pointList = new List<Vector2>();
                 foreach (var item in token["points"])
@@ -398,6 +404,9 @@ namespace IntelligentKioskSample.Views
                     }
                 }
                 var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+
+                Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+                float strokeWidth = (float)size.Width;
 
                 args.DrawingSession.DrawGeometry(shape, centerPoint, color, strokeWidth);
             }

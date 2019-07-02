@@ -40,7 +40,7 @@
 
                     <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Center">
                         <InkToolbar Grid.Column="0" x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" RequestedTheme="Light" Background="#26000000">
-                            <InkToolbarBallpointPenButton/>
+                            <InkToolbarBallpointPenButton x:Name="penTool"/>
                             <InkToolbarPencilButton/>
                             <InkToolbarEraserButton IsClearAllVisible="False"/>
                             <InkToolbarStencilButton x:Name="rulerButton"/>
@@ -59,7 +59,7 @@
                     <canvas:CanvasControl x:Name="resultCanvas"  Draw="ResultCanvas_Draw" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
                     <ProgressRing x:Name="progressRing" Width="75" Height="75"/>
 
-                    <Pivot x:Name="jsonPivot" Visibility="Visible" Margin="0,0,0,10" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Pivot x:Name="jsonPivot" Visibility="Collapsed" Margin="0,0,0,10" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <PivotItem Header="Request JSON" Margin="12,10,12,0" VerticalAlignment="Stretch">
                             <TextBox x:Name="requestJson" Background="#FF44546A" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" RequestedTheme="Dark"/>
                         </PivotItem>
