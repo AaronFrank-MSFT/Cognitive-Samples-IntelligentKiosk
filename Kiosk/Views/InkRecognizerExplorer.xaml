@@ -29,16 +29,16 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="5*"/>
-                <ColumnDefinition Width="0.1*"/>
-                <ColumnDefinition Width="5*"/>
-            </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="5*"/>
+                    <ColumnDefinition Width="0.1*"/>
+                    <ColumnDefinition Width="5*"/>
+                </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0" Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}">
-                <InkCanvas x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                
-                <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Center">
+                <Grid Grid.Column="0" Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}">
+                    <InkCanvas x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+
+                    <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Center">
                         <InkToolbar Grid.Column="0" x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" RequestedTheme="Light" Background="#26000000">
                             <InkToolbarBallpointPenButton/>
                             <InkToolbarPencilButton/>
@@ -49,20 +49,26 @@
                             </InkToolbarCustomToggleButton>
                         </InkToolbar>
                         <AppBarButton Grid.Column="1" x:Name="clearButton" Icon="Delete"  Click="ClearButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
-                        <Button Grid.Column="1" x:Name="recognizeButton" Content="Recognize" Click="RecognizeButton_Click" Height="40" Width="125" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
+                        <Button Grid.Column="1" x:Name="recognizeButton" Content="Recognize" Click="RecognizeButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
+                        <Button Grid.Column="1" x:Name="viewResultButton" Visibility="Collapsed" Content="View Result" Click="ViewResultButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
+                        <Button Grid.Column="1" x:Name="viewJsonButton" Content="View JSON" Click="ViewJsonButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
                     </StackPanel>
-            </Grid>
+                </Grid>
 
-            <Grid Grid.Column="2" Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}">
-                <canvas:CanvasControl x:Name="resultCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                <ProgressRing x:Name="progressRing"/>
-            </Grid>
+                <Grid x:Name="resultCanvasGrid" Grid.Column="2" Background="White">
+                    <canvas:CanvasControl x:Name="resultCanvas"  Draw="ResultCanvas_Draw" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                    <ProgressRing x:Name="progressRing" Width="75" Height="75"/>
+
+                    <Pivot x:Name="jsonPivot" Visibility="Visible" Margin="0,0,0,10" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <PivotItem Header="Request JSON" Margin="12,10,12,0" VerticalAlignment="Stretch">
+                            <TextBox x:Name="requestJson" Background="#FF44546A" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" RequestedTheme="Dark"/>
+                        </PivotItem>
+                        <PivotItem Header="Response JSON" Margin="12,10,12,0">
+                            <TextBox x:Name="responseJson" Background="#FF44546A" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" RequestedTheme="Dark"/>
+                        </PivotItem>
+                    </Pivot>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>
 </Page>
-<!--<StackPanel Orientation="Horizontal">
-    <TextBox x:Name="requestJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
-    <TextBox x:Name="responseJson" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
-    Draw="ResultCanvas_Draw"
-</StackPanel>-->
