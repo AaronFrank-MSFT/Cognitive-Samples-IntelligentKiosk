@@ -32,24 +32,19 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
-using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using ServiceHelpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Net.Http;
 using System.Numerics;
 using Windows.Data.Json;
 using Windows.Foundation;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
-using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
@@ -70,6 +65,8 @@ namespace IntelligentKioskSample.Views
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
         const float dipsPerMm = 96 / 25.4f;
         const float strokeWidth = 5;
+
+        Symbol TouchWriting = (Symbol)0xED5F;
 
         public InkRecognizerExplorer()
         {
@@ -97,6 +94,24 @@ namespace IntelligentKioskSample.Views
             }
         }
 
+        private void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            inkCanvas.InkPresenter.StrokeContainer.Clear();
+            inkRecognizer.strokeMap.Clear();
+        }
+
+        private void TouchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (touchButton.IsChecked == true)
+            {
+                inkCanvas.InkPresenter.InputDeviceTypes |= CoreInputDeviceTypes.Touch;
+            }
+            else
+            {
+                inkCanvas.InkPresenter.InputDeviceTypes &= ~CoreInputDeviceTypes.Touch;
+            }
+        }
+
         private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -104,22 +119,21 @@ namespace IntelligentKioskSample.Views
                 if(inkRecognizer.strokeMap.Count > 0)
                 { 
                     // Clear result canvas before recognition and rendering of results
-                    responseJson.Text = string.Empty;
+                    //responseJson.Text = string.Empty;
                     resultCanvas.Invalidate();
 
                     progressRing.IsActive = true;
                     progressRing.Visibility = Visibility.Visible;
-                    progressRingText.Visibility = Visibility.Visible;
 
                     // Convert Ink to JSON for request and display it
                     JsonObject json = inkRecognizer.ConvertInkToJson();
-                    requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
+                    //requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
 
                     // Recognize Ink from JSON and display response
                     inkCanvas.InkPresenter.IsInputEnabled = false;
                     var response = await inkRecognizer.RecognizeAsync(json);
                     string responseString = await response.Content.ReadAsStringAsync();
-                    responseJson.Text = inkRecognizer.FormatJson(responseString);
+                    //responseJson.Text = inkRecognizer.FormatJson(responseString);
 
                     // Draw result on right side canvas
                     resultCanvas.Invalidate();
@@ -127,77 +141,76 @@ namespace IntelligentKioskSample.Views
 
                     progressRing.IsActive = false;
                     progressRing.Visibility = Visibility.Collapsed;
-                    progressRingText.Visibility = Visibility.Collapsed;
                 }
                 else
                 {
                     // Clear request/response JSON textboxes if there is no strokes on canvas
-                    requestJson.Text = string.Empty;
-                    responseJson.Text = string.Empty;
+                    //requestJson.Text = string.Empty;
+                    //responseJson.Text = string.Empty;
                     resultCanvas.Invalidate();
                 }
             }
             catch (Exception ex)
             {
-                responseJson.Text = ex.Message;
+                //responseJson.Text = ex.Message;
             }
         }
 
-        private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
-        {
-            culture = CultureInfo.InvariantCulture.NumberFormat;
+        //private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        //{
+        //    culture = CultureInfo.InvariantCulture.NumberFormat;
 
-            if (!(responseJson.Text == string.Empty))
-            {
+        //    //if (!(responseJson.Text == string.Empty))
+        //    {
 
-                var response = JObject.Parse(responseJson.Text);
-                var jsonArray = (JArray)response.Property("recognitionUnits").Value;
+        //        var response = JObject.Parse(responseJson.Text);
+        //        var jsonArray = (JArray)response.Property("recognitionUnits").Value;
 
-                foreach (var token in jsonArray)
-                {
-                    string category = token["category"].ToString();
+        //        foreach (var token in jsonArray)
+        //        {
+        //            string category = token["category"].ToString();
 
-                    switch (category)
-                    {
-                        case "inkBullet":
-                        case "inkWord":
-                            AddText(category, token, sender, args);
-                            break;
-                        case "line":
-                            DrawText(token, sender, args);
-                            break;
-                        case "inkDrawing":
-                            string recognizedObject = token["recognizedObject"].ToString();
-                            switch (recognizedObject)
-                            {
-                                case "square":
-                                case "rectangle":
-                                    DrawRectangle(token, sender, args);
-                                    break;
-                                case "circle":
-                                    DrawCircle(token, sender, args);
-                                    break;
-                                case "ellipse":
-                                    DrawEllipse(token, sender, args);
-                                    break;
-                                case "drawing":
-                                    DrawLine(token, sender, args);
-                                    break;
-                                default:
-                                    DrawPolygon(token, sender, args);
-                                    break;
-                            }
-                            break;
-                    }
-                }
+        //            switch (category)
+        //            {
+        //                case "inkBullet":
+        //                case "inkWord":
+        //                    AddText(category, token, sender, args);
+        //                    break;
+        //                case "line":
+        //                    DrawText(token, sender, args);
+        //                    break;
+        //                case "inkDrawing":
+        //                    string recognizedObject = token["recognizedObject"].ToString();
+        //                    switch (recognizedObject)
+        //                    {
+        //                        case "square":
+        //                        case "rectangle":
+        //                            DrawRectangle(token, sender, args);
+        //                            break;
+        //                        case "circle":
+        //                            DrawCircle(token, sender, args);
+        //                            break;
+        //                        case "ellipse":
+        //                            DrawEllipse(token, sender, args);
+        //                            break;
+        //                        case "drawing":
+        //                            DrawLine(token, sender, args);
+        //                            break;
+        //                        default:
+        //                            DrawPolygon(token, sender, args);
+        //                            break;
+        //                    }
+        //                    break;
+        //            }
+        //        }
 
-                recoText.Clear();
-            }
-            else
-            {
-                args.DrawingSession.Clear(Colors.White);
-            }
-        }
+        //        recoText.Clear();
+        //    }
+        //    else
+        //    {
+        //        args.DrawingSession.Clear(Colors.White);
+        //    }
+        //}
 
         private void AddText(string category, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
