@@ -40,7 +40,7 @@
 
                     <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Center">
                         <InkToolbar Grid.Column="0" x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" RequestedTheme="Light" Background="#26000000">
-                            <InkToolbarBallpointPenButton x:Name="penTool"/>
+                            <InkToolbarBallpointPenButton/>
                             <InkToolbarPencilButton/>
                             <InkToolbarEraserButton IsClearAllVisible="False"/>
                             <InkToolbarStencilButton x:Name="rulerButton"/>
@@ -61,10 +61,18 @@
 
                     <Pivot x:Name="jsonPivot" Visibility="Collapsed" Margin="0,0,0,10" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <PivotItem Header="Request JSON" Margin="12,10,12,0" VerticalAlignment="Stretch">
-                            <TextBox x:Name="requestJson" Background="#FF44546A" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" RequestedTheme="Dark"/>
+                            <Border Background="#FF44546A" Padding="10,0,10,0">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock x:Name="requestJson" Foreground="White" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                </ScrollViewer>
+                            </Border>
                         </PivotItem>
                         <PivotItem Header="Response JSON" Margin="12,10,12,0">
-                            <TextBox x:Name="responseJson" Background="#FF44546A" TextWrapping="Wrap" AcceptsReturn="True" ScrollViewer.VerticalScrollBarVisibility="Auto" RequestedTheme="Dark"/>
+                            <Border Background="#FF44546A" Padding="10,0,10,0">
+                                <ScrollViewer>
+                                    <TextBlock x:Name="responseJson" Foreground="White" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                                </ScrollViewer>
+                            </Border>
                         </PivotItem>
                     </Pivot>
                 </Grid>

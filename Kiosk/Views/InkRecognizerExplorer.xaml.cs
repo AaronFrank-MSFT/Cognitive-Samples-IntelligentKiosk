@@ -47,6 +47,8 @@ using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media;
 
 namespace IntelligentKioskSample.Views
 {
