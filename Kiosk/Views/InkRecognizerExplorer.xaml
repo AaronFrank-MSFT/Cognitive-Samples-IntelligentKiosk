@@ -35,11 +35,11 @@
                     <ColumnDefinition Width="5*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Background="{ThemeResource SystemControlBackgroundChromeWhiteBrush}">
+                <Grid Grid.Column="0" Background="White">
                     <InkCanvas x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
 
-                    <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Center">
-                        <InkToolbar Grid.Column="0" x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" RequestedTheme="Light" Background="#26000000">
+                    <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,5,0,0">
+                        <InkToolbar x:Name="inkToolbar" TargetInkCanvas="{x:Bind Path=inkCanvas}" InitialControls="None" RequestedTheme="Light" Background="#26000000">
                             <InkToolbarBallpointPenButton/>
                             <InkToolbarPencilButton/>
                             <InkToolbarEraserButton IsClearAllVisible="False"/>
@@ -48,26 +48,39 @@
                                 <SymbolIcon Symbol="{x:Bind TouchWriting}"/>
                             </InkToolbarCustomToggleButton>
                         </InkToolbar>
-                        <AppBarButton Grid.Column="1" x:Name="clearButton" Icon="Delete"  Click="ClearButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
-                        <Button Grid.Column="1" x:Name="recognizeButton" Content="Recognize" Click="RecognizeButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
-                        <Button Grid.Column="1" x:Name="viewResultButton" Visibility="Collapsed" Content="View Result" Click="ViewResultButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
-                        <Button Grid.Column="1" x:Name="viewJsonButton" Content="View JSON" Click="ViewJsonButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" />
+                        <AppBarButton x:Name="undoButton" Icon="Undo"  Click="UndoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                        <AppBarButton x:Name="reddoButton" Icon="Redo"  Click="RedoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                        <AppBarButton x:Name="clearButton" Icon="Delete"  Click="ClearButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,5,10,0">
+                        <ComboBox x:Name="languageDropdown" SelectedIndex="1" Height="40" Width="150" RequestedTheme="Light" Margin="5,0,0,0">
+                            <x:String>Chinese (Simplified)</x:String>
+                            <x:String>English (US)</x:String>
+                            <x:String>English (UK)</x:String>
+                            <x:String>French</x:String>
+                            <x:String>German</x:String>
+                            <x:String>Italian</x:String>
+                            <x:String>Spanish</x:String>
+                        </ComboBox>
+                        <Button x:Name="recognizeButton" Content="Recognize" Click="RecognizeButton_Click" Height="40" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0" FontSize="16" FontWeight="SemiBold" />
                     </StackPanel>
                 </Grid>
 
                 <Grid x:Name="resultCanvasGrid" Grid.Column="2" Background="White">
                     <canvas:CanvasControl x:Name="resultCanvas"  Draw="ResultCanvas_Draw" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
-                    <ProgressRing x:Name="progressRing" Width="75" Height="75"/>
+                    <ProgressRing x:Name="progressRing" Foreground="#FF44546A" Width="75" Height="75"/>
 
-                    <Pivot x:Name="jsonPivot" Visibility="Collapsed" Margin="0,0,0,10" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <PivotItem Header="Request JSON" Margin="12,10,12,0" VerticalAlignment="Stretch">
+                    <Pivot x:Name="jsonPivot" Visibility="Collapsed" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,10">
+                        <PivotItem Header="Request JSON" Margin="10,10,10,0" VerticalAlignment="Stretch">
                             <Border Background="#FF44546A" Padding="10,0,10,0">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <TextBlock x:Name="requestJson" Foreground="White" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 </ScrollViewer>
                             </Border>
                         </PivotItem>
-                        <PivotItem Header="Response JSON" Margin="12,10,12,0">
+
+                        <PivotItem Header="Response JSON" Margin="10,10,10,0">
                             <Border Background="#FF44546A" Padding="10,0,10,0">
                                 <ScrollViewer>
                                     <TextBlock x:Name="responseJson" Foreground="White" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
@@ -75,6 +88,11 @@
                             </Border>
                         </PivotItem>
                     </Pivot>
+
+                    <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,5,10,0">
+                        <Button x:Name="viewCanvasButton" Visibility="Collapsed" Content="View Canvas" Click="ViewCanvasButton_Click" Height="40" Width="110" RequestedTheme="Light" Background="#26000000" FontSize="16" FontWeight="SemiBold"/>
+                        <Button x:Name="viewJsonButton" Content="View JSON" Click="ViewJsonButton_Click" Height="40" Width="110" RequestedTheme="Light" Background="#26000000" FontSize="16" FontWeight="SemiBold"/>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Grid>

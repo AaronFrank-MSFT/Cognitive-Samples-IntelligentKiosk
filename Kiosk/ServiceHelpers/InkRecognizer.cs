@@ -18,6 +18,7 @@ namespace ServiceHelpers
         HttpClient httpClient;
 
         public IDictionary<uint, InkStroke> strokeMap = new Dictionary<uint, InkStroke>();
+        string languageCode = "en-US";
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
@@ -27,17 +28,42 @@ namespace ServiceHelpers
             this.inkRecognitionUrl = inkRecognitionUrl;
         }
 
-        public void AddStrokes(IReadOnlyList<InkStroke> strokes)
+        public void AddStroke(InkStroke stroke)
         {
-            foreach (InkStroke stroke in strokes)
-            {
-                strokeMap[stroke.Id] = stroke;
-            }
+            strokeMap[stroke.Id] = stroke;
         }
 
         public void RemoveStroke(uint strokeId)
         {
             strokeMap.Remove(strokeId);
+        }
+
+        public void SetLanguage(string language)
+        {
+            switch (language)
+            {
+                case "Chinese (Simplified)":
+                    languageCode = "zh-CN";
+                    break;
+                case "English (US)":
+                    languageCode = "en-US";
+                    break;
+                case "English (UK)":
+                    languageCode = "en-GB";
+                    break;
+                case "French":
+                    languageCode = "fr-FR";
+                    break;
+                case "German":
+                    languageCode = "de-DE";
+                    break;
+                case "Italian":
+                    languageCode = "it-IT";
+                    break;
+                case "Spanish":
+                    languageCode = "es-ES";
+                    break;
+            }
         }
 
         public JsonObject ConvertInkToJson()
@@ -75,7 +101,7 @@ namespace ServiceHelpers
                 }
             }
             payload["version"] = JsonValue.CreateNumberValue(1.0);
-            payload["language"] = JsonValue.CreateStringValue("en-US");
+            payload["language"] = JsonValue.CreateStringValue(languageCode);
             payload["strokes"] = strokesArray;
 
             return payload;

@@ -45,6 +45,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -64,6 +65,9 @@ namespace IntelligentKioskSample.Views
 
         NumberFormatInfo culture = CultureInfo.InvariantCulture.NumberFormat;
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
+        Stack<InkStroke> undoStrokes = new Stack<InkStroke>();
+        List<InkStroke> clearedStrokes = new List<InkStroke>();
+        bool inkCleared = false;
         const float dipsPerMm = 96 / 25.4f;
 
         Symbol TouchWriting = (Symbol)0xED5F;
@@ -73,34 +77,31 @@ namespace IntelligentKioskSample.Views
             this.InitializeComponent();
 
             inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
-            
+
             // Register event handlers for inkCanvas 
-            inkCanvas.InkPresenter.StrokesCollected += InkPresenter_StrokesCollected;
+            inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
         }
 
-        private void InkPresenter_StrokesCollected(InkPresenter sender, InkStrokesCollectedEventArgs args)
+        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
         {
-            inkRecognizer.AddStrokes(args.Strokes);
+            jsonPivot.Visibility = Visibility.Collapsed;
+            viewCanvasButton.Visibility = Visibility.Collapsed;
+            viewJsonButton.Visibility = Visibility.Visible;
+            resultCanvas.Visibility = Visibility.Visible;
+
+            clearedStrokes.Clear();
+            inkCleared = false;
         }
 
         private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
         {
             foreach (var stroke in args.Strokes)
             {
-                inkRecognizer.RemoveStroke(stroke.Id);
+                undoStrokes.Push(stroke);
             }
-        }
-
-        private void ClearButton_Click(object sender, RoutedEventArgs e)
-        {
-            inkCanvas.InkPresenter.StrokeContainer.Clear();
-            inkRecognizer.strokeMap.Clear();
-            requestJson.Text = string.Empty;
-            responseJson.Text = string.Empty;
-            resultCanvas.Invalidate();
         }
 
         private void TouchButton_Click(object sender, RoutedEventArgs e)
@@ -115,10 +116,118 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private void ViewResultButton_Click(object sender, RoutedEventArgs e)
+        private void UndoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (inkCleared)
+            {
+                foreach (var stroke in clearedStrokes)
+                {
+                    inkCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+                }
+
+                clearedStrokes.Clear();
+                inkCleared = false;
+            }
+            else
+            {
+                var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
+                if (strokes.Count > 0)
+                {
+                    var stroke = strokes[strokes.Count - 1];
+
+                    undoStrokes.Push(stroke);
+
+                    stroke.Selected = true;
+                    inkCanvas.InkPresenter.StrokeContainer.DeleteSelected();
+                }
+            }
+        }
+
+        private void RedoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (undoStrokes.Count > 0)
+            {
+                var stroke = undoStrokes.Pop();
+
+                inkCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+            }
+        }
+
+        private void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
+            foreach (var stroke in strokes)
+            {
+                clearedStrokes.Add(stroke);
+            }
+
+            inkCleared = true;
+            inkCanvas.InkPresenter.StrokeContainer.Clear();
+            requestJson.Text = string.Empty;
+            responseJson.Text = string.Empty;
+            resultCanvas.Invalidate();
+        }
+
+        private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
+            if (strokes.Count > 0)
+            {
+                if (subscriptionKey == string.Empty)
+                {
+                    var message = new MessageDialog("No API Key found for the Ink Recognizer Explorer.");
+                    await message.ShowAsync();
+                    return;
+                }
+
+                // Clear result canvas before recognition and rendering of results
+                ViewCanvasButton_Click(sender, e);
+                requestJson.Text = string.Empty;
+                responseJson.Text = string.Empty;
+                resultCanvas.Invalidate();
+
+                progressRing.IsActive = true;
+                progressRing.Visibility = Visibility.Visible;
+
+                // Convert Ink to JSON for request and display it
+                string selectedLanguage = languageDropdown.SelectedItem.ToString();
+                inkRecognizer.SetLanguage(selectedLanguage);
+
+                inkRecognizer.strokeMap.Clear();
+                foreach (var stroke in strokes)
+                {
+                    inkRecognizer.AddStroke(stroke);
+                }
+
+                JsonObject json = inkRecognizer.ConvertInkToJson();
+                requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
+
+                // Recognize Ink from JSON and display response
+                inkCanvas.InkPresenter.IsInputEnabled = false;
+                var response = await inkRecognizer.RecognizeAsync(json);
+                string responseString = await response.Content.ReadAsStringAsync();
+                responseJson.Text = inkRecognizer.FormatJson(responseString);
+
+                // Draw result on right side canvas
+                resultCanvas.Invalidate();
+                inkCanvas.InkPresenter.IsInputEnabled = true;
+
+                progressRing.IsActive = false;
+                progressRing.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                // Clear request/response JSON textboxes if there is no strokes on canvas
+                requestJson.Text = string.Empty;
+                responseJson.Text = string.Empty;
+                resultCanvas.Invalidate();
+            }
+        }
+
+        private void ViewCanvasButton_Click(object sender, RoutedEventArgs e)
         {
             jsonPivot.Visibility = Visibility.Collapsed;
-            viewResultButton.Visibility = Visibility.Collapsed;
+            viewCanvasButton.Visibility = Visibility.Collapsed;
             viewJsonButton.Visibility = Visibility.Visible;
             resultCanvas.Visibility = Visibility.Visible;
         }
@@ -127,54 +236,8 @@ namespace IntelligentKioskSample.Views
         {
             resultCanvas.Visibility = Visibility.Collapsed;
             viewJsonButton.Visibility = Visibility.Collapsed;
-            viewResultButton.Visibility = Visibility.Visible;
+            viewCanvasButton.Visibility = Visibility.Visible;
             jsonPivot.Visibility = Visibility.Visible;
-        }
-
-        private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if(inkRecognizer.strokeMap.Count > 0)
-                {
-                    // Clear result canvas before recognition and rendering of results
-                    ViewResultButton_Click(sender, e);
-                    requestJson.Text = string.Empty;
-                    responseJson.Text = string.Empty;
-                    resultCanvas.Invalidate();
-
-                    progressRing.IsActive = true;
-                    progressRing.Visibility = Visibility.Visible;
-
-                    // Convert Ink to JSON for request and display it
-                    JsonObject json = inkRecognizer.ConvertInkToJson();
-                    requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
-
-                    // Recognize Ink from JSON and display response
-                    inkCanvas.InkPresenter.IsInputEnabled = false;
-                    var response = await inkRecognizer.RecognizeAsync(json);
-                    string responseString = await response.Content.ReadAsStringAsync();
-                    responseJson.Text = inkRecognizer.FormatJson(responseString);
-
-                    // Draw result on right side canvas
-                    resultCanvas.Invalidate();
-                    inkCanvas.InkPresenter.IsInputEnabled = true;
-
-                    progressRing.IsActive = false;
-                    progressRing.Visibility = Visibility.Collapsed;
-                }
-                else
-                {
-                    // Clear request/response JSON textboxes if there is no strokes on canvas
-                    requestJson.Text = string.Empty;
-                    responseJson.Text = string.Empty;
-                    resultCanvas.Invalidate();
-                }
-            }
-            catch (Exception ex)
-            {
-                responseJson.Text = ex.Message;
-            }
         }
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
@@ -204,10 +267,6 @@ namespace IntelligentKioskSample.Views
                             string recognizedObject = token["recognizedObject"].ToString();
                             switch (recognizedObject)
                             {
-                                case "square":
-                                case "rectangle":
-                                    DrawRectangle(token, sender, args);
-                                    break;
                                 case "circle":
                                     DrawCircle(token, sender, args);
                                     break;
@@ -287,31 +346,6 @@ namespace IntelligentKioskSample.Views
             }
 
             args.DrawingSession.DrawTextLayout(textLayout, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black);
-        }
-
-        private void DrawRectangle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
-        {
-            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
-            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
-            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
-            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
-
-            var rect = new Rect()
-            {
-                X = floatX * dipsPerMm,
-                Y = floatY * dipsPerMm,
-                Height = height * dipsPerMm,
-                Width = width * dipsPerMm
-            };
-
-            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
-            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
-
-            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
-            float strokeWidth = (float)size.Width;
-
-
-            args.DrawingSession.DrawRectangle(rect, color, strokeWidth);
         }
 
         private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
