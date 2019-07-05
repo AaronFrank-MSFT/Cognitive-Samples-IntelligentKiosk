@@ -404,12 +404,35 @@ namespace IntelligentKioskSample.Views
 
         private void DrawEllipse(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            float floatX = float.Parse(token["center"]["x"].ToString(), culture);
-            float floatY = float.Parse(token["center"]["y"].ToString(), culture);
-            var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
+            var initialTransformation = args.DrawingSession.Transform;
 
-            float diameterX = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
-            float diameterY = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
+            float topLeftX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
+            float topLeftY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+
+            float topRightX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
+            float topRightY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
+
+            float bottomRightX = float.Parse(token["rotatedBoundingRectangle"][2]["x"].ToString(), culture);
+            float bottomRightY = float.Parse(token["rotatedBoundingRectangle"][2]["y"].ToString(), culture);
+
+            float bottomLeftX = float.Parse(token["rotatedBoundingRectangle"][3]["x"].ToString(), culture);
+            float bottomLeftY = float.Parse(token["rotatedBoundingRectangle"][3]["y"].ToString(), culture);
+
+            float centerPointX = float.Parse(token["center"]["x"].ToString(), culture);
+            float centerPointY = float.Parse(token["center"]["y"].ToString(), culture);
+
+            var centerPoint = new Vector2(centerPointX * dipsPerMm, centerPointY * dipsPerMm);
+
+            float diameterX = (topRightX - topLeftX) * dipsPerMm;
+            float diameterY = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
+
+            float transformCenterPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
+            float transformCenterPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
+            var transformCenterPoint = new Vector2(transformCenterPointX, transformCenterPointY);
+
+            float slope = (bottomRightY - bottomLeftY) / (bottomRightX - bottomLeftX);
+            var radians = Math.Atan(slope);
+            args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, transformCenterPoint);
 
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
             var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
@@ -417,7 +440,8 @@ namespace IntelligentKioskSample.Views
             Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
             float strokeWidth = (float)size.Width;
 
-            args.DrawingSession.DrawEllipse(centerPoint, (diameterX * dipsPerMm) / 2, (diameterY * dipsPerMm) / 2, color, strokeWidth);
+            args.DrawingSession.DrawEllipse(centerPoint, diameterX / 2, diameterY / 2, color, strokeWidth);
+            args.DrawingSession.Transform = initialTransformation;
         }
 
         private void DrawLine(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
