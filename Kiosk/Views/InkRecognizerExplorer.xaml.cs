@@ -48,8 +48,6 @@ using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 
 namespace IntelligentKioskSample.Views
 {
@@ -104,6 +102,7 @@ namespace IntelligentKioskSample.Views
             }
         }
 
+        #region Event Handlers
         private void TouchButton_Click(object sender, RoutedEventArgs e)
         {
             if (touchButton.IsChecked == true)
@@ -240,6 +239,15 @@ namespace IntelligentKioskSample.Views
             jsonPivot.Visibility = Visibility.Visible;
         }
 
+        // Dispose Win2D resources to avoid memory leak
+        void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.resultCanvas.RemoveFromVisualTree();
+            this.resultCanvas = null;
+        }
+        #endregion
+
+        #region Draw Results On Canvas
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             culture = CultureInfo.InvariantCulture.NumberFormat;
@@ -313,14 +321,42 @@ namespace IntelligentKioskSample.Views
         private void DrawText(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
         {
             var childIds = (JArray)token["childIds"];
+            var initialTransformation = args.DrawingSession.Transform;
+
             float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
             float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
-            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
-            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+
+            float topLeftX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
+            float topLeftY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+
+            float topRightX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
+            float topRightY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
+
+            float bottomRightX = float.Parse(token["rotatedBoundingRectangle"][2]["x"].ToString(), culture);
+            float bottomRightY = float.Parse(token["rotatedBoundingRectangle"][2]["y"].ToString(), culture);
+
+            float bottomLeftX = float.Parse(token["rotatedBoundingRectangle"][3]["x"].ToString(), culture);
+            float bottomLeftY = float.Parse(token["rotatedBoundingRectangle"][3]["y"].ToString(), culture);
+
+            float width = (topRightX - topLeftX) * dipsPerMm;
+            float height = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
+
+            if (height < 45)
+            {
+                height = 45;
+            }
+
+            float centerPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
+            float centerPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
+            var centerPoint = new Vector2(centerPointX, centerPointY);
+
+            float slope = (bottomRightY - bottomLeftY) / (bottomRightX - bottomLeftX);
+            var radians = Math.Atan(slope);
+            args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, centerPoint);
 
             var textFormat = new CanvasTextFormat()
             {
-                FontSize = height * dipsPerMm,
+                FontSize = height,
                 WordWrapping = CanvasWordWrapping.NoWrap,
                 FontFamily = "Ink Free"
             };
@@ -346,6 +382,7 @@ namespace IntelligentKioskSample.Views
             }
 
             args.DrawingSession.DrawTextLayout(textLayout, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black);
+            args.DrawingSession.Transform = initialTransformation;
         }
 
         private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
@@ -448,12 +485,6 @@ namespace IntelligentKioskSample.Views
             }
 
         }
-
-        // Dispose Win2D resources to avoid memory leak
-        void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            this.resultCanvas.RemoveFromVisualTree();
-            this.resultCanvas = null;
-        }
+        #endregion
     }
 }
