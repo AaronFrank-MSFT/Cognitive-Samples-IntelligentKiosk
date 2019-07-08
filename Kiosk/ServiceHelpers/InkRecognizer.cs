@@ -17,8 +17,8 @@ namespace ServiceHelpers
         string inkRecognitionUrl;
         HttpClient httpClient;
 
-        public IDictionary<uint, InkStroke> strokeMap = new Dictionary<uint, InkStroke>();
-        string languageCode = "en-US";
+        public IDictionary<uint, InkStroke> StrokeMap { get; set; }
+        public string LanguageCode { get; set; } = "en-US";
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
@@ -30,12 +30,12 @@ namespace ServiceHelpers
 
         public void AddStroke(InkStroke stroke)
         {
-            strokeMap[stroke.Id] = stroke;
+            StrokeMap[stroke.Id] = stroke;
         }
 
         public void RemoveStroke(uint strokeId)
         {
-            strokeMap.Remove(strokeId);
+            StrokeMap.Remove(strokeId);
         }
 
         public void SetLanguage(string language)
@@ -43,25 +43,31 @@ namespace ServiceHelpers
             switch (language)
             {
                 case "Chinese (Simplified)":
-                    languageCode = "zh-CN";
+                    LanguageCode = "zh-CN";
                     break;
                 case "English (US)":
-                    languageCode = "en-US";
+                    LanguageCode = "en-US";
                     break;
                 case "English (UK)":
-                    languageCode = "en-GB";
+                    LanguageCode = "en-GB";
                     break;
                 case "French":
-                    languageCode = "fr-FR";
+                    LanguageCode = "fr-FR";
                     break;
                 case "German":
-                    languageCode = "de-DE";
+                    LanguageCode = "de-DE";
                     break;
                 case "Italian":
-                    languageCode = "it-IT";
+                    LanguageCode = "it-IT";
+                    break;
+                case "Japanese":
+                    LanguageCode = "ja-JP";
+                    break;
+                case "Korean":
+                    LanguageCode = "ko-KR";
                     break;
                 case "Spanish":
-                    languageCode = "es-ES";
+                    LanguageCode = "es-ES";
                     break;
             }
         }
@@ -72,7 +78,7 @@ namespace ServiceHelpers
             var payload = new JsonObject();
             var strokesArray = new JsonArray();
 
-            foreach (var stroke in strokeMap.Values)
+            foreach (var stroke in StrokeMap.Values)
             {
                 var jStroke = new JsonObject();
                 var pointsCollection = stroke.GetInkPoints();
@@ -101,7 +107,7 @@ namespace ServiceHelpers
                 }
             }
             payload["version"] = JsonValue.CreateNumberValue(1.0);
-            payload["language"] = JsonValue.CreateStringValue(languageCode);
+            payload["language"] = JsonValue.CreateStringValue(LanguageCode);
             payload["strokes"] = strokesArray;
 
             return payload;

@@ -48,6 +48,7 @@ using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views
 {
@@ -63,10 +64,12 @@ namespace IntelligentKioskSample.Views
 
         NumberFormatInfo culture = CultureInfo.InvariantCulture.NumberFormat;
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
-        Stack<InkStroke> undoStrokes = new Stack<InkStroke>();
+        LinkedList<JToken> recoTree = new LinkedList<JToken>();
+        Stack<InkStroke> redoStrokes = new Stack<InkStroke>();
         List<InkStroke> clearedStrokes = new List<InkStroke>();
         bool inkCleared = false;
         const float dipsPerMm = 96 / 25.4f;
+
 
         Symbol TouchWriting = (Symbol)0xED5F;
 
@@ -81,6 +84,17 @@ namespace IntelligentKioskSample.Views
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+        }
+
+        #region Event Handlers
+        protected async override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SettingsHelper.Instance.TranslatorTextApiKey))
+            {
+                await new MessageDialog("Missing Ink Recognizer API Key. Please enter the key in the Settings page.", "Missing API Key").ShowAsync();
+            }
+
+            base.OnNavigatedTo(e);
         }
 
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
@@ -98,11 +112,10 @@ namespace IntelligentKioskSample.Views
         {
             foreach (var stroke in args.Strokes)
             {
-                undoStrokes.Push(stroke);
+                redoStrokes.Push(stroke);
             }
         }
 
-        #region Event Handlers
         private void TouchButton_Click(object sender, RoutedEventArgs e)
         {
             if (touchButton.IsChecked == true)
@@ -134,7 +147,7 @@ namespace IntelligentKioskSample.Views
                 {
                     var stroke = strokes[strokes.Count - 1];
 
-                    undoStrokes.Push(stroke);
+                    redoStrokes.Push(stroke);
 
                     stroke.Selected = true;
                     inkCanvas.InkPresenter.StrokeContainer.DeleteSelected();
@@ -144,9 +157,9 @@ namespace IntelligentKioskSample.Views
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
-            if (undoStrokes.Count > 0)
+            if (redoStrokes.Count > 0)
             {
-                var stroke = undoStrokes.Pop();
+                var stroke = redoStrokes.Pop();
 
                 inkCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
             }
@@ -172,13 +185,6 @@ namespace IntelligentKioskSample.Views
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
             if (strokes.Count > 0)
             {
-                if (subscriptionKey == string.Empty)
-                {
-                    var message = new MessageDialog("No API Key found for the Ink Recognizer Explorer.");
-                    await message.ShowAsync();
-                    return;
-                }
-
                 // Clear result canvas before recognition and rendering of results
                 ViewCanvasButton_Click(sender, e);
                 requestJson.Text = string.Empty;
@@ -192,7 +198,7 @@ namespace IntelligentKioskSample.Views
                 string selectedLanguage = languageDropdown.SelectedItem.ToString();
                 inkRecognizer.SetLanguage(selectedLanguage);
 
-                inkRecognizer.strokeMap.Clear();
+                inkRecognizer.StrokeMap.Clear();
                 foreach (var stroke in strokes)
                 {
                     inkRecognizer.AddStroke(stroke);
@@ -247,7 +253,7 @@ namespace IntelligentKioskSample.Views
         }
         #endregion
 
-        #region Draw Results On Canvas
+        #region Draw Tree View and Results On Canvas
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             culture = CultureInfo.InvariantCulture.NumberFormat;
@@ -260,8 +266,9 @@ namespace IntelligentKioskSample.Views
 
                 foreach (var token in jsonArray)
                 {
-                    string category = token["category"].ToString();
+                    recoTree.AddFirst(token);
 
+                    string category = token["category"].ToString();
                     switch (category)
                     {
                         case "inkBullet":
@@ -311,7 +318,7 @@ namespace IntelligentKioskSample.Views
                 float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
 
                 uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
-                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+                var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
                 var text = new Tuple<string, Color>(recognizedText, color);
                 recoText.Add(id, text);
@@ -338,7 +345,7 @@ namespace IntelligentKioskSample.Views
             float bottomLeftX = float.Parse(token["rotatedBoundingRectangle"][3]["x"].ToString(), culture);
             float bottomLeftY = float.Parse(token["rotatedBoundingRectangle"][3]["y"].ToString(), culture);
 
-            float width = (topRightX - topLeftX) * dipsPerMm;
+            float width = (float)Math.Sqrt((Math.Pow((bottomRightX - bottomLeftX), 2)) + (Math.Pow((bottomRightY - bottomLeftY), 2))) * dipsPerMm;
             float height = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
 
             if (height < 45)
@@ -394,9 +401,9 @@ namespace IntelligentKioskSample.Views
             float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
 
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
-            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+            var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
-            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+            Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
             float strokeWidth = (float)size.Width;
 
             args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, color, strokeWidth);
@@ -423,7 +430,7 @@ namespace IntelligentKioskSample.Views
 
             var centerPoint = new Vector2(centerPointX * dipsPerMm, centerPointY * dipsPerMm);
 
-            float diameterX = (topRightX - topLeftX) * dipsPerMm;
+            float diameterX = (float)Math.Sqrt((Math.Pow((bottomRightX - bottomLeftX), 2)) + (Math.Pow((bottomRightY - bottomLeftY), 2))) * dipsPerMm;
             float diameterY = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
 
             float transformCenterPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
@@ -435,9 +442,9 @@ namespace IntelligentKioskSample.Views
             args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, transformCenterPoint);
 
             uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
-            var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+            var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
-            Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+            Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
             float strokeWidth = (float)size.Width;
 
             args.DrawingSession.DrawEllipse(centerPoint, diameterX / 2, diameterY / 2, color, strokeWidth);
@@ -459,9 +466,9 @@ namespace IntelligentKioskSample.Views
                 var pointB = new Vector2(pointBX * dipsPerMm, pointAY * dipsPerMm);
 
                 uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
-                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+                var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
-                Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+                Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
                 float strokeWidth = (float)size.Width;
 
                 args.DrawingSession.DrawLine(pointA, pointB, color, strokeWidth);
@@ -500,15 +507,24 @@ namespace IntelligentKioskSample.Views
                         strokeId = id;
                     }
                 }
-                var color = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Color;
+                var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
-                Size size = inkRecognizer.strokeMap[strokeId].DrawingAttributes.Size;
+                Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
                 float strokeWidth = (float)size.Width;
 
                 args.DrawingSession.DrawGeometry(shape, centerPoint, color, strokeWidth);
             }
 
         }
+
+        //private void DrawTreeView(LinkedList<JToken> list)
+        //{
+        //    LinkedListNode<JToken> current = list.First;
+        //    while (current.Next != null)
+        //    {
+        //        treeViewCanvas.Children.
+        //    }
+        //}
         #endregion
     }
 }
