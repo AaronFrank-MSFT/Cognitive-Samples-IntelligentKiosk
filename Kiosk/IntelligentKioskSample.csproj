@@ -189,6 +189,8 @@
       <DependentUpon>ImageWithFaceBorderUserControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Models\CustomVisionModelData.cs" />
+    <Compile Include="Models\InkRecognizerExplorer\InkResponse.cs" />
+    <Compile Include="Models\InkRecognizerExplorer\InkRecognitionUnit.cs" />
     <Compile Include="Models\Platform.cs" />
     <Compile Include="NavMenuItem.cs" />
     <Compile Include="SettingsHelper.cs" />
@@ -271,7 +273,7 @@
     <Compile Include="Controls\ImageSearchUserControl.xaml.cs">
       <DependentUpon>ImageSearchUserControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\InkRecognizerExplorer.xaml.cs">
+    <Compile Include="Views\InkRecognizerExplorer\InkRecognizerExplorer.xaml.cs">
       <DependentUpon>InkRecognizerExplorer.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\TranslatorExplorer\AlternativeTranslationsControl.xaml.cs">
@@ -510,7 +512,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Views\InkRecognizerExplorer.xaml">
+    <Page Include="Views\InkRecognizerExplorer\InkRecognizerExplorer.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -574,6 +576,7 @@
       <Version>1.6.2</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

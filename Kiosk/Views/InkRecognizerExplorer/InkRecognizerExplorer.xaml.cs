@@ -32,9 +32,11 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using IntelligentKioskSample.Models.InkRecognizerExplorer;
 using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -50,7 +52,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
-namespace IntelligentKioskSample.Views
+namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
     public sealed partial class InkRecognizerExplorer : Page
@@ -62,14 +64,12 @@ namespace IntelligentKioskSample.Views
 
         ServiceHelpers.InkRecognizer inkRecognizer;
 
-        NumberFormatInfo culture = CultureInfo.InvariantCulture.NumberFormat;
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
-        LinkedList<JToken> recoTree = new LinkedList<JToken>();
+        Dictionary<int, JToken> recoTree = new Dictionary<int, JToken>();
         Stack<InkStroke> redoStrokes = new Stack<InkStroke>();
         List<InkStroke> clearedStrokes = new List<InkStroke>();
         bool inkCleared = false;
         const float dipsPerMm = 96 / 25.4f;
-
 
         Symbol TouchWriting = (Symbol)0xED5F;
 
@@ -89,7 +89,7 @@ namespace IntelligentKioskSample.Views
         #region Event Handlers
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
-            if (string.IsNullOrEmpty(SettingsHelper.Instance.TranslatorTextApiKey))
+            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
             {
                 await new MessageDialog("Missing Ink Recognizer API Key. Please enter the key in the Settings page.", "Missing API Key").ShowAsync();
             }
@@ -253,46 +253,41 @@ namespace IntelligentKioskSample.Views
         }
         #endregion
 
-        #region Draw Tree View and Results On Canvas
+        #region Draw Results On Canvas
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            culture = CultureInfo.InvariantCulture.NumberFormat;
-
             if (!(responseJson.Text == string.Empty))
             {
+                InkResponse response = JsonConvert.DeserializeObject<InkResponse>(responseJson.Text);
+                List<InkRecognitionUnit> recoUnits = response.RecognitionUnits;
 
-                var response = JObject.Parse(responseJson.Text);
-                var jsonArray = (JArray)response.Property("recognitionUnits").Value;
-
-                foreach (var token in jsonArray)
+                foreach (var recoUnit in recoUnits)
                 {
-                    recoTree.AddFirst(token);
-
-                    string category = token["category"].ToString();
+                    string category = recoUnit.category;
                     switch (category)
                     {
                         case "inkBullet":
                         case "inkWord":
-                            AddText(category, token, sender, args);
+                            AddText(recoUnit, sender, args);
                             break;
                         case "line":
-                            DrawText(token, sender, args);
+                            DrawText(recoUnit, sender, args);
                             break;
                         case "inkDrawing":
-                            string recognizedObject = token["recognizedObject"].ToString();
+                            string recognizedObject = recoUnit.recognizedObject;
                             switch (recognizedObject)
                             {
                                 case "circle":
-                                    DrawCircle(token, sender, args);
+                                    DrawCircle(recoUnit, sender, args);
                                     break;
                                 case "ellipse":
-                                    DrawEllipse(token, sender, args);
+                                    DrawEllipse(recoUnit, sender, args);
                                     break;
                                 case "drawing":
-                                    DrawLine(token, sender, args);
+                                    DrawLine(recoUnit, sender, args);
                                     break;
                                 default:
-                                    DrawPolygon(token, sender, args);
+                                    DrawPolygon(recoUnit, sender, args);
                                     break;
                             }
                             break;
@@ -307,17 +302,16 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private void AddText(string category, JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void AddText(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            string recognizedText = token["recognizedText"].ToString();
+            string recognizedText = recoUnit.recognizedText;
 
             if (recognizedText != null)
             {
-                int id = int.Parse(token["id"].ToString());
+                int id = recoUnit.id;
 
-                float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
-
-                uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+                // Color of ink word or ink bullet
+                uint strokeId = (uint)recoUnit.strokeIds[0];
                 var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
                 var text = new Tuple<string, Color>(recognizedText, color);
@@ -325,26 +319,29 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private void DrawText(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawText(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            var childIds = (JArray)token["childIds"];
+            var childIds = recoUnit.childIds;
             var initialTransformation = args.DrawingSession.Transform;
 
-            float floatX = float.Parse(token["boundingRectangle"]["topX"].ToString(), culture);
-            float floatY = float.Parse(token["boundingRectangle"]["topY"].ToString(), culture);
+            // Points of bounding rectangle to align drawn text
+            float floatX = (float)recoUnit.boundingRectangle.topX;
+            float floatY = (float)recoUnit.boundingRectangle.topY;
 
-            float topLeftX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
-            float topLeftY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+            // Rotated bounding rectangle points to get correct angle of text being drawn
+            float topLeftX = (float)recoUnit.rotatedBoundingRectangle[0].x;
+            float topLeftY = (float)recoUnit.rotatedBoundingRectangle[0].y;
 
-            float topRightX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
-            float topRightY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
+            float topRightX = (float)recoUnit.rotatedBoundingRectangle[1].x;
+            float topRightY = (float)recoUnit.rotatedBoundingRectangle[1].y;
 
-            float bottomRightX = float.Parse(token["rotatedBoundingRectangle"][2]["x"].ToString(), culture);
-            float bottomRightY = float.Parse(token["rotatedBoundingRectangle"][2]["y"].ToString(), culture);
+            float bottomRightX = (float)recoUnit.rotatedBoundingRectangle[2].x;
+            float bottomRightY = (float)recoUnit.rotatedBoundingRectangle[2].y;
 
-            float bottomLeftX = float.Parse(token["rotatedBoundingRectangle"][3]["x"].ToString(), culture);
-            float bottomLeftY = float.Parse(token["rotatedBoundingRectangle"][3]["y"].ToString(), culture);
+            float bottomLeftX = (float)recoUnit.rotatedBoundingRectangle[3].x;
+            float bottomLeftY = (float)recoUnit.rotatedBoundingRectangle[3].y;
 
+            // Height and width of bounding rectangle to get font size and width for text layout
             float width = (float)Math.Sqrt((Math.Pow((bottomRightX - bottomLeftX), 2)) + (Math.Pow((bottomRightY - bottomLeftY), 2))) * dipsPerMm;
             float height = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
 
@@ -353,6 +350,7 @@ namespace IntelligentKioskSample.Views
                 height = 45;
             }
 
+            // Transform to get correct angle of ellipse
             float centerPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
             float centerPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
             var centerPoint = new Vector2(centerPointX, centerPointY);
@@ -368,6 +366,7 @@ namespace IntelligentKioskSample.Views
                 FontFamily = "Ink Free"
             };
 
+            // Build string to be drawn to canvas
             string text = string.Empty;
             foreach (var item in childIds)
             {
@@ -378,6 +377,7 @@ namespace IntelligentKioskSample.Views
 
             var textLayout = new CanvasTextLayout(sender.Device, text, textFormat, width, height);
 
+            // Associate correct color with each word in string
             int index = 0;
             foreach (var item in childIds)
             {
@@ -392,47 +392,57 @@ namespace IntelligentKioskSample.Views
             args.DrawingSession.Transform = initialTransformation;
         }
 
-        private void DrawCircle(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawCircle(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            float floatX = float.Parse(token["center"]["x"].ToString(), culture);
-            float floatY = float.Parse(token["center"]["y"].ToString(), culture);
+            // Center point and diameter of circle
+            float floatX = (float)recoUnit.center.x;
+            float floatY = (float)recoUnit.center.y;
             var centerPoint = new Vector2(floatX * dipsPerMm, floatY * dipsPerMm);
 
-            float diameter = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
+            float diameter = (float)recoUnit.boundingRectangle.width;
 
-            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+            // Color of circle
+            uint strokeId = (uint)recoUnit.strokeIds[0];
             var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
+            // Stroke thickness
             Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
             float strokeWidth = (float)size.Width;
 
             args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, color, strokeWidth);
         }
 
-        private void DrawEllipse(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawEllipse(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
             var initialTransformation = args.DrawingSession.Transform;
 
-            float topLeftX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
-            float topLeftY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+            // Rotated bounding rectangle points to get correct angle of ellipse being drawn
+            float floatX = (float)recoUnit.boundingRectangle.topX;
+            float floatY = (float)recoUnit.boundingRectangle.topY;
 
-            float topRightX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
-            float topRightY = float.Parse(token["rotatedBoundingRectangle"][1]["y"].ToString(), culture);
+            float topLeftX = (float)recoUnit.rotatedBoundingRectangle[0].x;
+            float topLeftY = (float)recoUnit.rotatedBoundingRectangle[0].y;
 
-            float bottomRightX = float.Parse(token["rotatedBoundingRectangle"][2]["x"].ToString(), culture);
-            float bottomRightY = float.Parse(token["rotatedBoundingRectangle"][2]["y"].ToString(), culture);
+            float topRightX = (float)recoUnit.rotatedBoundingRectangle[1].x;
+            float topRightY = (float)recoUnit.rotatedBoundingRectangle[1].y;
 
-            float bottomLeftX = float.Parse(token["rotatedBoundingRectangle"][3]["x"].ToString(), culture);
-            float bottomLeftY = float.Parse(token["rotatedBoundingRectangle"][3]["y"].ToString(), culture);
+            float bottomRightX = (float)recoUnit.rotatedBoundingRectangle[2].x;
+            float bottomRightY = (float)recoUnit.rotatedBoundingRectangle[2].y;
 
-            float centerPointX = float.Parse(token["center"]["x"].ToString(), culture);
-            float centerPointY = float.Parse(token["center"]["y"].ToString(), culture);
+            float bottomLeftX = (float)recoUnit.rotatedBoundingRectangle[3].x;
+            float bottomLeftY = (float)recoUnit.rotatedBoundingRectangle[3].y;
+
+            // Center point of ellipse
+            float centerPointX = (float)recoUnit.center.x;
+            float centerPointY = (float)recoUnit.center.y;
 
             var centerPoint = new Vector2(centerPointX * dipsPerMm, centerPointY * dipsPerMm);
 
+            // X and Y diameter of ellipse
             float diameterX = (float)Math.Sqrt((Math.Pow((bottomRightX - bottomLeftX), 2)) + (Math.Pow((bottomRightY - bottomLeftY), 2))) * dipsPerMm;
             float diameterY = (float)Math.Sqrt((Math.Pow((bottomRightX - topRightX), 2)) + (Math.Pow((bottomRightY - topRightY), 2))) * dipsPerMm;
 
+            // Transform to get correct angle of ellipse
             float transformCenterPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
             float transformCenterPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
             var transformCenterPoint = new Vector2(transformCenterPointX, transformCenterPointY);
@@ -441,9 +451,11 @@ namespace IntelligentKioskSample.Views
             var radians = Math.Atan(slope);
             args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, transformCenterPoint);
 
-            uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+            // Color of ellipse
+            uint strokeId = (uint)recoUnit.strokeIds[0];
             var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
+            // Stroke thickness
             Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
             float strokeWidth = (float)size.Width;
 
@@ -451,23 +463,26 @@ namespace IntelligentKioskSample.Views
             args.DrawingSession.Transform = initialTransformation;
         }
 
-        private void DrawLine(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawLine(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            float height = float.Parse(token["boundingRectangle"]["height"].ToString(), culture);
-            float width = float.Parse(token["boundingRectangle"]["width"].ToString(), culture);
-     
+            float height = (float)recoUnit.boundingRectangle.height;
+            float width = (float)recoUnit.boundingRectangle.width;
+
             if (height <= 10 && width >= 20)
             {
-                float pointAX = float.Parse(token["rotatedBoundingRectangle"][0]["x"].ToString(), culture);
-                float pointAY = float.Parse(token["rotatedBoundingRectangle"][0]["y"].ToString(), culture);
+                // Bottom left and right corner points of rotated bounding rectangle
+                float pointAX = (float)recoUnit.rotatedBoundingRectangle[0].x;
+                float pointAY = (float)recoUnit.rotatedBoundingRectangle[0].y;
                 var pointA = new Vector2(pointAX * dipsPerMm, pointAY * dipsPerMm);
 
-                float pointBX = float.Parse(token["rotatedBoundingRectangle"][1]["x"].ToString(), culture);
+                float pointBX = (float)recoUnit.rotatedBoundingRectangle[1].x;
                 var pointB = new Vector2(pointBX * dipsPerMm, pointAY * dipsPerMm);
 
-                uint strokeId = uint.Parse(token["strokeIds"][0].ToString());
+                // Color of line
+                uint strokeId = (uint)recoUnit.strokeIds[0];
                 var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
+                // Stroke thickness
                 Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
                 float strokeWidth = (float)size.Width;
 
@@ -475,19 +490,21 @@ namespace IntelligentKioskSample.Views
             }
         }
 
-        private void DrawPolygon(JToken token, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawPolygon(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
-            if (token["points"].HasValues)
+            if (recoUnit.points.Count > 0)
             {
-                float floatX = float.Parse(token["center"]["x"].ToString(), culture);
-                float floatY = float.Parse(token["center"]["y"].ToString(), culture);
+                // Center point of polygon
+                float floatX = (float)recoUnit.center.x;
+                float floatY = (float)recoUnit.center.y;
                 var centerPoint = new Vector2(floatX / dipsPerMm, floatY / dipsPerMm);
 
+                // Create new list of points for polygon to be drawn
                 var pointList = new List<Vector2>();
-                foreach (var item in token["points"])
+                foreach (var inkPoint in recoUnit.points)
                 {
-                    float x = float.Parse(item["x"].ToString(), culture);
-                    float y = float.Parse(item["y"].ToString(), culture);
+                    float x = (float)inkPoint.x;
+                    float y = (float)inkPoint.y;
 
                     var point = new Vector2(x * dipsPerMm, y * dipsPerMm);
 
@@ -497,16 +514,17 @@ namespace IntelligentKioskSample.Views
                 var points = pointList.ToArray();
                 var shape = CanvasGeometry.CreatePolygon(sender.Device, points);
 
-                var strokeIds = (JArray)token["strokeIds"];
+                var strokeIds = recoUnit.strokeIds;
                 uint strokeId = uint.MaxValue;
                 foreach (var item in strokeIds)
                 {
-                    var id = uint.Parse(item.ToString());
+                    var id = (uint)item;
                     if (id < strokeId)
                     {
                         strokeId = id;
                     }
                 }
+
                 var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
                 Size size = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Size;
@@ -516,15 +534,6 @@ namespace IntelligentKioskSample.Views
             }
 
         }
-
-        //private void DrawTreeView(LinkedList<JToken> list)
-        //{
-        //    LinkedListNode<JToken> current = list.First;
-        //    while (current.Next != null)
-        //    {
-        //        treeViewCanvas.Children.
-        //    }
-        //}
         #endregion
     }
 }

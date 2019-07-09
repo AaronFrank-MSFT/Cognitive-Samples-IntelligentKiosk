@@ -26,6 +26,8 @@ namespace ServiceHelpers
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
 
             this.inkRecognitionUrl = inkRecognitionUrl;
+
+            StrokeMap = new Dictionary<uint, InkStroke>();
         }
 
         public void AddStroke(InkStroke stroke)
