@@ -37,20 +37,18 @@ using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Numerics;
 using Windows.Data.Json;
 using Windows.Foundation;
+using Windows.Storage;
 using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
@@ -64,8 +62,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         ServiceHelpers.InkRecognizer inkRecognizer;
 
+        Dictionary<int, InkRecognitionUnit> recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
+        LinkedList<InkRecognitionUnit> recoTreeTopLevelNodes = new LinkedList<InkRecognitionUnit>();
         Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
-        Dictionary<int, JToken> recoTree = new Dictionary<int, JToken>();
         Stack<InkStroke> redoStrokes = new Stack<InkStroke>();
         List<InkStroke> clearedStrokes = new List<InkStroke>();
         bool inkCleared = false;
@@ -79,7 +78,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
 
-            // Register event handlers for inkCanvas 
+            // Register event handlers
             inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
@@ -87,22 +86,31 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         }
 
         #region Event Handlers
-        protected async override void OnNavigatedTo(NavigationEventArgs e)
+        private async void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
+            var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
+            if (file != null)
+            {
+                using (var stream = await file.OpenSequentialReadAsync())
+                {
+                    await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
+                }
+            }
+
             if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
             {
                 await new MessageDialog("Missing Ink Recognizer API Key. Please enter the key in the Settings page.", "Missing API Key").ShowAsync();
+                return;
             }
-
-            base.OnNavigatedTo(e);
+            else
+            {
+                RecognizeButton_Click(sender, e);
+            }
         }
 
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
         {
-            jsonPivot.Visibility = Visibility.Collapsed;
-            viewCanvasButton.Visibility = Visibility.Collapsed;
-            viewJsonButton.Visibility = Visibility.Visible;
-            resultCanvas.Visibility = Visibility.Visible;
+            ViewCanvasButton_Click(null, null);
 
             clearedStrokes.Clear();
             inkCleared = false;
@@ -185,10 +193,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
             if (strokes.Count > 0)
             {
-                // Clear result canvas before recognition and rendering of results
+                // Clear result canvas and viewable JSON before recognition and rendering of results
                 ViewCanvasButton_Click(sender, e);
                 requestJson.Text = string.Empty;
                 responseJson.Text = string.Empty;
+                treeView.RootNodes.Clear();
+                recoTreeNodes.Clear();
+                recoTreeTopLevelNodes.Clear();               
                 resultCanvas.Invalidate();
 
                 progressRing.IsActive = true;
@@ -207,15 +218,26 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 JsonObject json = inkRecognizer.ConvertInkToJson();
                 requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
 
-                // Recognize Ink from JSON and display response
+                // Disable use of toolbar during recognition and rendering
                 inkCanvas.InkPresenter.IsInputEnabled = false;
+                undoButton.IsEnabled = false;
+                redoButton.IsEnabled = false;
+                clearButton.IsEnabled = false;
+
+                // Recognize Ink from JSON and display response
                 var response = await inkRecognizer.RecognizeAsync(json);
                 string responseString = await response.Content.ReadAsStringAsync();
                 responseJson.Text = inkRecognizer.FormatJson(responseString);
+                CreateJsonTree();
 
                 // Draw result on right side canvas
                 resultCanvas.Invalidate();
+
+                // Re-enable use of toolbar after recognition and rendering
                 inkCanvas.InkPresenter.IsInputEnabled = true;
+                undoButton.IsEnabled = true;
+                redoButton.IsEnabled = true;
+                clearButton.IsEnabled = true;
 
                 progressRing.IsActive = false;
                 progressRing.Visibility = Visibility.Collapsed;
@@ -225,6 +247,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 // Clear request/response JSON textboxes if there is no strokes on canvas
                 requestJson.Text = string.Empty;
                 responseJson.Text = string.Empty;
+                treeView.RootNodes.Clear();
                 resultCanvas.Invalidate();
             }
         }
@@ -245,18 +268,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             jsonPivot.Visibility = Visibility.Visible;
         }
 
-        // Dispose Win2D resources to avoid memory leak
-        void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            this.resultCanvas.RemoveFromVisualTree();
-            this.resultCanvas = null;
-        }
-        #endregion
-
-        #region Draw Results On Canvas
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            if (!(responseJson.Text == string.Empty))
+            if (!string.IsNullOrEmpty(responseJson.Text))
             {
                 InkResponse response = JsonConvert.DeserializeObject<InkResponse>(responseJson.Text);
                 List<InkRecognitionUnit> recoUnits = response.RecognitionUnits;
@@ -302,6 +316,15 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
+        // Dispose Win2D resources to avoid memory leak
+        void MainPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.resultCanvas.RemoveFromVisualTree();
+            this.resultCanvas = null;
+        }
+        #endregion
+
+        #region Draw Results On Canvas
         private void AddText(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
         {
             string recognizedText = recoUnit.recognizedText;
@@ -350,7 +373,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 height = 45;
             }
 
-            // Transform to get correct angle of ellipse
+            // Transform to get correct angle of text
             float centerPointX = ((topLeftX + topRightX) / 2) * dipsPerMm;
             float centerPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
             var centerPoint = new Vector2(centerPointX, centerPointY);
@@ -361,7 +384,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             var textFormat = new CanvasTextFormat()
             {
-                FontSize = height,
+                FontSize = height - 5,
                 WordWrapping = CanvasWordWrapping.NoWrap,
                 FontFamily = "Ink Free"
             };
@@ -533,6 +556,96 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 args.DrawingSession.DrawGeometry(shape, centerPoint, color, strokeWidth);
             }
 
+        }
+        #endregion
+
+        #region JSON To Tree View
+        public void CreateJsonTree()
+        {
+            InkResponse response = JsonConvert.DeserializeObject<InkResponse>(responseJson.Text);
+            List<InkRecognitionUnit> recoUnits = response.RecognitionUnits;
+
+            foreach (var recoUnit in recoUnits)
+            {
+                recoTreeNodes.Add(recoUnit.id, recoUnit);
+                var count = recoTreeNodes.Count;
+
+                if (recoUnit.parentId == 0)
+                {
+                    recoTreeTopLevelNodes.AddFirst(recoUnit);
+                }
+            }
+
+            string itemCount = $"{recoTreeTopLevelNodes.Count} item{(recoTreeTopLevelNodes.Count > 1 ? "s" : string.Empty)}";
+            var root = new TreeViewNode()
+            {
+                Content = new KeyValuePair<string, string>("Root", itemCount)
+            };
+
+            var current = recoTreeTopLevelNodes.First;
+            while (current != null)
+            {
+                string category = current.Value.category;
+
+                var node = new TreeViewNode();
+
+                if (category == "writingRegion")
+                {
+                    string childCount = $"{current.Value.childIds.Count} item{(current.Value.childIds.Count > 1 ? "s" : string.Empty)}";
+
+                    node.Content = new KeyValuePair<string, string>(category, childCount);
+
+                    var childNodes = GetChildNodes(current.Value);
+                    foreach (var child in childNodes)
+                    {
+                        node.Children.Add(child);
+                    }
+                }
+                else
+                {
+                    node.Content = new KeyValuePair<string, string>(category, current.Value.recognizedObject);
+                }
+
+                root.Children.Add(node);
+                current = current.Next;
+            }
+
+            treeView.RootNodes.Add(root);
+        }
+
+        public List<TreeViewNode> GetChildNodes(InkRecognitionUnit recoUnit)
+        {
+            var nodes = new List<TreeViewNode>();
+
+            foreach (int id in recoUnit.childIds)
+            {
+                InkRecognitionUnit unit = recoTreeNodes[id];
+                var node = new TreeViewNode();
+
+                string category = unit.category;
+                if (category == "inkWord" || category == "inkBullet")
+                {
+                    node.Content = new KeyValuePair<string, string>(category, unit.recognizedText);
+                }
+                else
+                {
+                    string childCount = $"{unit.childIds.Count} item{(unit.childIds.Count > 1 ? "s" : string.Empty)}";
+                    node.Content = new KeyValuePair<string, string>(category, childCount);
+                }
+
+                if (unit.childIds != null)
+                {
+                    var childNodes = GetChildNodes(unit);
+                    foreach (var child in childNodes)
+                    {
+                        node.Children.Add(child);
+                    }
+                }
+
+                nodes.Add(node);
+            }
+
+            return nodes;
         }
         #endregion
     }

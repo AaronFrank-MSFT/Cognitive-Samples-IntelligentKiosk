@@ -7,9 +7,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    xmlns:controls="using:Windows.UI.Xaml.Controls"
     mc:Ignorable="d"
-    Unloaded="Page_Unloaded"
-    x:Name="mainPage">
+    x:Name="mainPage"
+    Loaded="MainPage_Loaded"
+    Unloaded="MainPage_Unloaded" 
+    Background="Black">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -44,14 +47,15 @@
                                 <SymbolIcon Symbol="{x:Bind TouchWriting}"/>
                             </InkToolbarCustomToggleButton>
                         </InkToolbar>
-                        <AppBarButton x:Name="undoButton" Icon="Undo"  Click="UndoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
-                        <AppBarButton x:Name="reddoButton" Icon="Redo"  Click="RedoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
-                        <AppBarButton x:Name="clearButton" Icon="Delete"  Click="ClearButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                        <AppBarButton x:Name="undoButton" Icon="Undo" Click="UndoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                        <AppBarButton x:Name="redoButton" Icon="Redo" Click="RedoButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
+                        <AppBarButton x:Name="clearButton" Icon="Delete" Click="ClearButton_Click" Height="40" Width="40" RequestedTheme="Light" Background="#26000000" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,5,10,0">
-                        <ComboBox x:Name="languageDropdown" SelectedIndex="1" Height="40" Width="150" RequestedTheme="Light" Margin="5,0,0,0">
+                        <ComboBox x:Name="languageDropdown" SelectedIndex="2" Height="40" Width="150" RequestedTheme="Light" Margin="5,0,0,0">
                             <x:String>Chinese (Simplified)</x:String>
+                            <x:String>Chinese (Traditional)</x:String>
                             <x:String>English (US)</x:String>
                             <x:String>English (UK)</x:String>
                             <x:String>French</x:String>
@@ -85,10 +89,34 @@
                                 </ScrollViewer>
                             </Border>
                         </PivotItem>
+
+                        <PivotItem Header="Tree View" Margin="10,10,10,0">
+                            <Border Background="#FF44546A" Padding="10,0,10,0">
+                                <controls:TreeView Grid.Column="1" x:Name="treeView" CanDragItems="False">
+                                    <controls:TreeView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid x:Name="treeViewContent">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="auto"/>
+                                                    <RowDefinition Height="auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                                    <TextBlock Text="{Binding Content.Key}" Foreground="White"/>
+                                                    <TextBlock Text=":" Foreground="White"/>
+                                                    <TextBlock Text="{Binding Content.Value}" Foreground="White" Margin="12,0,0,0" Opacity="0.5" TextWrapping="Wrap"/>
+                                                </StackPanel>
+
+                                                <Rectangle Grid.Row="1" Fill="White" Height="1" Opacity="0.3" Margin="0,4,0,0" Width="1000" HorizontalAlignment="Left"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </controls:TreeView.ItemTemplate>
+                                </controls:TreeView>
+                            </Border>
+                        </PivotItem>
                     </Pivot>
 
                     <StackPanel Orientation="Horizontal" Height="40" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,5,10,0">
-                        <Button x:Name="treeViewButton" Content="View Tree" Height="40" Width="110" RequestedTheme="Light" Background="#26000000" FontSize="16" FontWeight="SemiBold"/>
                         <Button x:Name="viewCanvasButton" Visibility="Collapsed" Content="View Canvas" Click="ViewCanvasButton_Click" Height="40" Width="110" RequestedTheme="Light" Background="#26000000" FontSize="16" FontWeight="SemiBold" Margin="5,0,0,0"/>
                         <Button x:Name="viewJsonButton" Content="View JSON" Click="ViewJsonButton_Click" Height="40" Width="110" RequestedTheme="Light" Background="#26000000" FontSize="16" FontWeight="SemiBold" Margin="5,0,0,0"/>
                     </StackPanel>

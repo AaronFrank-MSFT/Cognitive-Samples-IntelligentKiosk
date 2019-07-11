@@ -47,6 +47,9 @@ namespace ServiceHelpers
                 case "Chinese (Simplified)":
                     LanguageCode = "zh-CN";
                     break;
+                case "Chinese (Traditional)":
+                    LanguageCode = "zh-TW";
+                    break;
                 case "English (US)":
                     LanguageCode = "en-US";
                     break;
@@ -70,7 +73,7 @@ namespace ServiceHelpers
                     break;
                 case "Spanish":
                     LanguageCode = "es-ES";
-                    break;
+                    break;                    
             }
         }
 
