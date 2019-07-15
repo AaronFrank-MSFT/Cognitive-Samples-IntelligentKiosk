@@ -234,9 +234,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 recoTreeParentNodes.Clear();
                 resultCanvas.Invalidate();
 
-                progressRing.IsActive = true;
-                progressRing.Visibility = Visibility.Visible;
-
                 // Convert Ink to JSON for request and display it
                 string selectedLanguage = languageDropdown.SelectedItem.ToString();
                 inkRecognizer.SetLanguage(selectedLanguage);
@@ -251,10 +248,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 requestJson.Text = inkRecognizer.FormatJson(json.Stringify());
 
                 // Disable use of toolbar during recognition and rendering
+                inkToolbar.IsEnabled = false;
                 inkCanvas.InkPresenter.IsInputEnabled = false;
-                undoButton.IsEnabled = false;
-                redoButton.IsEnabled = false;
-                clearButton.IsEnabled = false;
+
+                recognizeButtonText.Opacity = 0;
+                progressRing.IsActive = true;
+                progressRing.Visibility = Visibility.Visible;
 
                 // Recognize Ink from JSON and display response
                 var response = await inkRecognizer.RecognizeAsync(json);
@@ -267,11 +266,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 resultCanvas.Invalidate();
 
                 // Re-enable use of toolbar after recognition and rendering
+                inkToolbar.IsEnabled = true;
                 inkCanvas.InkPresenter.IsInputEnabled = true;
-                undoButton.IsEnabled = true;
-                redoButton.IsEnabled = true;
-                clearButton.IsEnabled = true;
 
+                recognizeButtonText.Opacity = 100;
                 progressRing.IsActive = false;
                 progressRing.Visibility = Visibility.Collapsed;
             }
