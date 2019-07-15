@@ -49,6 +49,7 @@ using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
@@ -61,15 +62,21 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
         ServiceHelpers.InkRecognizer inkRecognizer;
+        InkResponse inkResponse;
 
-        Dictionary<int, InkRecognitionUnit> recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
-        LinkedList<InkRecognitionUnit> recoTreeTopLevelNodes = new LinkedList<InkRecognitionUnit>();
-        Dictionary<int, Tuple<string, Color>> recoText = new Dictionary<int, Tuple<string, Color>>();
-        Stack<InkStroke> redoStrokes = new Stack<InkStroke>();
-        List<InkStroke> clearedStrokes = new List<InkStroke>();
+        Dictionary<int, InkRecognitionUnit> recoTreeNodes;
+        LinkedList<InkRecognitionUnit> recoTreeParentNodes;
+        Dictionary<int, Tuple<string, Color>> recoText;
+
+        Stack<InkStroke> redoStrokes;
+        List<InkStroke> clearedStrokes;
         bool inkCleared = false;
+
         const float dipsPerMm = 96 / 25.4f;
 
+        Symbol Undo = (Symbol)0xE7A7;
+        Symbol Redo = (Symbol)0xE7A6;
+        Symbol ClearAll = (Symbol)0xE74D;
         Symbol TouchWriting = (Symbol)0xED5F;
 
         public InkRecognizerExplorer()
@@ -83,29 +90,37 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
+            recoTreeParentNodes = new LinkedList<InkRecognitionUnit>();
+            recoText = new Dictionary<int, Tuple<string, Color>>();
+
+            redoStrokes = new Stack<InkStroke>();
+            clearedStrokes = new List<InkStroke>();
         }
 
         #region Event Handlers
-        private async void MainPage_Loaded(object sender, RoutedEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
-            if (file != null)
-            {
-                using (var stream = await file.OpenSequentialReadAsync())
-                {
-                    await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
-                }
-            }
-
             if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
             {
-                await new MessageDialog("Missing Ink Recognizer API Key. Please enter the key in the Settings page.", "Missing API Key").ShowAsync();
-                return;
+                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
             }
             else
             {
-                RecognizeButton_Click(sender, e);
+                var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
+                if (file != null)
+                {
+                    using (var stream = await file.OpenSequentialReadAsync())
+                    {
+                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
+                    }
+                }
+
+                RecognizeButton_Click(null, null);
             }
+
+            base.OnNavigatedTo(e);
         }
 
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
@@ -124,20 +139,18 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        private void TouchButton_Click(object sender, RoutedEventArgs e)
+        private void InkToolbar_ActiveToolChanged(InkToolbar sender, object args)
         {
-            if (touchButton.IsChecked == true)
+            if (sender.ActiveTool is InkToolbarCustomToolButton)
             {
-                inkCanvas.InkPresenter.InputDeviceTypes |= CoreInputDeviceTypes.Touch;
-            }
-            else
-            {
-                inkCanvas.InkPresenter.InputDeviceTypes &= ~CoreInputDeviceTypes.Touch;
+                sender.ActiveTool.IsChecked = false;
             }
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
+            undoButton.IsChecked = false;
+
             if (inkCleared)
             {
                 foreach (var stroke in clearedStrokes)
@@ -165,6 +178,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
+            redoButton.IsChecked = false;
+
             if (redoStrokes.Count > 0)
             {
                 var stroke = redoStrokes.Pop();
@@ -175,6 +190,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
+            clearButton.IsChecked = false;
+
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
             foreach (var stroke in strokes)
             {
@@ -185,7 +202,22 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkCanvas.InkPresenter.StrokeContainer.Clear();
             requestJson.Text = string.Empty;
             responseJson.Text = string.Empty;
+            treeView.RootNodes.Clear();
+            recoTreeNodes.Clear();
+            recoTreeParentNodes.Clear(); 
             resultCanvas.Invalidate();
+        }
+
+        private void TouchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (touchButton.IsChecked == true)
+            {
+                inkCanvas.InkPresenter.InputDeviceTypes |= CoreInputDeviceTypes.Touch;
+            }
+            else
+            {
+                inkCanvas.InkPresenter.InputDeviceTypes &= ~CoreInputDeviceTypes.Touch;
+            }
         }
 
         private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
@@ -199,7 +231,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 responseJson.Text = string.Empty;
                 treeView.RootNodes.Clear();
                 recoTreeNodes.Clear();
-                recoTreeTopLevelNodes.Clear();               
+                recoTreeParentNodes.Clear();
                 resultCanvas.Invalidate();
 
                 progressRing.IsActive = true;
@@ -227,10 +259,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 // Recognize Ink from JSON and display response
                 var response = await inkRecognizer.RecognizeAsync(json);
                 string responseString = await response.Content.ReadAsStringAsync();
+                inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
                 responseJson.Text = inkRecognizer.FormatJson(responseString);
-                CreateJsonTree();
 
-                // Draw result on right side canvas
+                // Generate JSON tree view and draw result on right side canvas
+                CreateJsonTree();
                 resultCanvas.Invalidate();
 
                 // Re-enable use of toolbar after recognition and rendering
@@ -244,10 +277,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
             else
             {
-                // Clear request/response JSON textboxes if there is no strokes on canvas
+                // Clear viewable JSON if there is no strokes on canvas
                 requestJson.Text = string.Empty;
                 responseJson.Text = string.Empty;
                 treeView.RootNodes.Clear();
+                recoTreeNodes.Clear();
+                recoTreeParentNodes.Clear();
                 resultCanvas.Invalidate();
             }
         }
@@ -268,14 +303,25 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             jsonPivot.Visibility = Visibility.Visible;
         }
 
+        private void TreeView_ItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
+        {
+            var node = (TreeViewNode)args.InvokedItem;
+
+            if (node.IsExpanded == false)
+            {
+                node.IsExpanded = true;
+            }
+            else
+            {
+                node.IsExpanded = false;
+            }
+        }
+
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             if (!string.IsNullOrEmpty(responseJson.Text))
             {
-                InkResponse response = JsonConvert.DeserializeObject<InkResponse>(responseJson.Text);
-                List<InkRecognitionUnit> recoUnits = response.RecognitionUnits;
-
-                foreach (var recoUnit in recoUnits)
+                foreach (var recoUnit in inkResponse.RecognitionUnits)
                 {
                     string category = recoUnit.category;
                     switch (category)
@@ -560,29 +606,33 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #endregion
 
         #region JSON To Tree View
-        public void CreateJsonTree()
+        private void CreateJsonTree()
         {
-            InkResponse response = JsonConvert.DeserializeObject<InkResponse>(responseJson.Text);
-            List<InkRecognitionUnit> recoUnits = response.RecognitionUnits;
+            recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
+            recoTreeParentNodes = new LinkedList<InkRecognitionUnit>();
 
-            foreach (var recoUnit in recoUnits)
+            // Add all of the ink recognition units that will become nodes to a collection
+            foreach (var recoUnit in inkResponse.RecognitionUnits)
             {
                 recoTreeNodes.Add(recoUnit.id, recoUnit);
                 var count = recoTreeNodes.Count;
 
+                // If the ink recognition unit is a top level node in the tree add it to a linked list to preserve order
                 if (recoUnit.parentId == 0)
                 {
-                    recoTreeTopLevelNodes.AddFirst(recoUnit);
+                    recoTreeParentNodes.AddFirst(recoUnit);
                 }
             }
 
-            string itemCount = $"{recoTreeTopLevelNodes.Count} item{(recoTreeTopLevelNodes.Count > 1 ? "s" : string.Empty)}";
+            // Add the initial "root" node for all of the ink recognition units to be added under
+            string itemCount = $"{recoTreeParentNodes.Count} item{(recoTreeParentNodes.Count > 1 ? "s" : string.Empty)}";
             var root = new TreeViewNode()
             {
                 Content = new KeyValuePair<string, string>("Root", itemCount)
             };
 
-            var current = recoTreeTopLevelNodes.First;
+            // Traverse the linked list of top level parent nodes and append children if they have any
+            var current = recoTreeParentNodes.First;
             while (current != null)
             {
                 string category = current.Value.category;
@@ -595,6 +645,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                     node.Content = new KeyValuePair<string, string>(category, childCount);
 
+                    // Recursively append all children
                     var childNodes = GetChildNodes(current.Value);
                     foreach (var child in childNodes)
                     {
@@ -610,13 +661,15 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 current = current.Next;
             }
 
+            root.IsExpanded = true;
             treeView.RootNodes.Add(root);
         }
 
-        public List<TreeViewNode> GetChildNodes(InkRecognitionUnit recoUnit)
+        private List<TreeViewNode> GetChildNodes(InkRecognitionUnit recoUnit)
         {
             var nodes = new List<TreeViewNode>();
 
+            // Iterate over each of the ink recognition unit's children to append them to their parent node
             foreach (int id in recoUnit.childIds)
             {
                 InkRecognitionUnit unit = recoTreeNodes[id];
@@ -633,6 +686,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     node.Content = new KeyValuePair<string, string>(category, childCount);
                 }
 
+                // If the child of the current ink recognition unit also has children recurse to append them to the child node as well
                 if (unit.childIds != null)
                 {
                     var childNodes = GetChildNodes(unit);
