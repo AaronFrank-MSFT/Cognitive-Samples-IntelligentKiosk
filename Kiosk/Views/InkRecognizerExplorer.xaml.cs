@@ -99,6 +99,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             redoStrokes = new Stack<InkStroke>();
             clearedStrokes = new List<InkStroke>();
             currentActiveTool = ballpointPen;
+
+            customToolbar.ActiveTool = null;
         }
 
         #region Event Handlers
@@ -145,17 +147,15 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             currentActiveTool = inkToolbar.ActiveTool;
         }
 
-        private void InkToolbar_ActiveToolChanged(InkToolbar sender, object args)
+        private void CustomToolbar_ActiveToolChanged(InkToolbar sender, object args)
         {            
-            if (inkToolbar.ActiveTool is InkToolbarCustomToolButton)
-            {
-                inkToolbar.ActiveTool.IsChecked = false;
-                inkToolbar.ActiveTool = currentActiveTool;
-            }
+            customToolbar.ActiveTool.IsChecked = false;
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
+            undoButton.IsChecked = false;
+
             if (inkCleared)
             {
                 foreach (var stroke in clearedStrokes)
@@ -187,6 +187,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
+            redoButton.IsChecked = false;
+
             if (redoStrokes.Count > 0)
             {
                 var stroke = redoStrokes.Pop();

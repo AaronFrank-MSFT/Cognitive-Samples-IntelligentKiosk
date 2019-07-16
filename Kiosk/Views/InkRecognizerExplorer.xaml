@@ -25,7 +25,7 @@
             </CommandBar.Content>
         </CommandBar>
 
-        <Grid Grid.Row="1" Margin="14.7,20,15,100">
+        <Grid Grid.Row="1" Margin="12,10,12,100">
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="5*"/>
@@ -47,28 +47,36 @@
                     <InkCanvas Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
 
                     <Viewbox Grid.Column="0" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="10,5,0,0">
-                        <InkToolbar Grid.Column="0" x:Name="inkToolbar" InitialControls="None" ActiveToolChanged="InkToolbar_ActiveToolChanged" TargetInkCanvas="{x:Bind Path=inkCanvas}" RequestedTheme="Light" Background="#26000000">
-                            <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
-                            <InkToolbarPencilButton x:Name="pencil"/>
-                            <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
-                            <InkToolbarCustomToolButton x:Name="undoButton" Click="UndoButton_Click" ToolTipService.ToolTip="Undo">
-                                <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                            </InkToolbarCustomToolButton>
-                            <InkToolbarCustomToolButton x:Name="redoButton" Click="RedoButton_Click" ToolTipService.ToolTip="Redo">
-                                <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                            </InkToolbarCustomToolButton>
-                            <InkToolbarCustomToolButton x:Name="clearButton" Click="ClearButton_Click" ToolTipService.ToolTip="Clear All">
-                                <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                            </InkToolbarCustomToolButton>
-                            <InkToolbarCustomToggleButton x:Name="touchButton" Click="TouchButton_Click" ToolTipService.ToolTip="Touch Writing">
-                                <SymbolIcon Symbol="{x:Bind Path=TouchWriting}"/>
-                            </InkToolbarCustomToggleButton>
-                        </InkToolbar>
+                        <StackPanel Orientation="Horizontal" Background="LightGray">
+                            <InkToolbar x:Name="inkToolbar" InitialControls="None" TargetInkCanvas="{x:Bind Path=inkCanvas}" RequestedTheme="Light" >
+                                <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
+                                <InkToolbarPencilButton x:Name="pencil"/>
+                                <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
+                                <InkToolbarCustomToggleButton x:Name="touchButton" Click="TouchButton_Click" ToolTipService.ToolTip="Touch Writing">
+                                    <SymbolIcon Symbol="{x:Bind Path=TouchWriting}"/>
+                                </InkToolbarCustomToggleButton>
+                            </InkToolbar>
+                            
+                            <Rectangle Height="32" Width="1" Fill="Gray" />
+                            
+                            <!-- To keep styling of custom buttons the same, they are placed in a non-functional ink toolbar -->
+                            <InkToolbar x:Name="customToolbar" InitialControls="None" ActiveToolChanged="CustomToolbar_ActiveToolChanged" RequestedTheme="Light" >
+                                <InkToolbarCustomToolButton x:Name="undoButton" Click="UndoButton_Click" ToolTipService.ToolTip="Undo">
+                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                </InkToolbarCustomToolButton>
+                                <InkToolbarCustomToolButton x:Name="redoButton" Click="RedoButton_Click" ToolTipService.ToolTip="Redo">
+                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                </InkToolbarCustomToolButton>
+                                <InkToolbarCustomToolButton x:Name="clearButton" Click="ClearButton_Click" ToolTipService.ToolTip="Clear All">
+                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                </InkToolbarCustomToolButton>
+                            </InkToolbar>
+                        </StackPanel>
                     </Viewbox>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,5,10,0">
-                        <Viewbox Stretch="Uniform" VerticalAlignment="Stretch" HorizontalAlignment="Right">
-                            <ComboBox x:Name="languageDropdown" SelectedIndex="2" Width="150" RequestedTheme="Light">
+                        <Viewbox VerticalAlignment="Stretch">
+                            <ComboBox x:Name="languageDropdown" SelectedIndex="2" Width="175" RequestedTheme="Light">
                                 <x:String>Chinese (Simplified)</x:String>
                                 <x:String>Chinese (Traditional)</x:String>
                                 <x:String>English (US)</x:String>
@@ -84,7 +92,7 @@
 
                         <RelativePanel>
                             <Viewbox>
-                                <Button x:Name="recognizeButton" Click="RecognizeButton_Click" Width="100" RequestedTheme="Light" Background="#26000000" Margin="5,0,0,0">
+                                <Button x:Name="recognizeButton" Click="RecognizeButton_Click" Width="100" RequestedTheme="Light" Background="LightGray" Margin="5,0,0,0">
                                     <TextBlock x:Name="recognizeButtonText" Text="Recognize" FontWeight="SemiBold"/>
                                 </Button>
                             </Viewbox>
@@ -156,12 +164,12 @@
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,10,0">
                         <Viewbox>
-                            <Button x:Name="viewJsonButton" Click="ViewJsonButton_Click" Width="100" RequestedTheme="Light" Background="#26000000">
+                            <Button x:Name="viewJsonButton" Click="ViewJsonButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
                                 <TextBlock Text="View JSON" FontWeight="SemiBold"/>
                             </Button>
                         </Viewbox>
                         <Viewbox>
-                            <Button x:Name="viewCanvasButton" Visibility="Collapsed" Click="ViewCanvasButton_Click" Width="100" RequestedTheme="Light" Background="#26000000">
+                            <Button x:Name="viewCanvasButton" Visibility="Collapsed" Click="ViewCanvasButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
                                 <TextBlock Text="View Canvas" FontWeight="SemiBold"/>
                             </Button>
                         </Viewbox>
