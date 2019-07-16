@@ -70,6 +70,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         Stack<InkStroke> redoStrokes;
         List<InkStroke> clearedStrokes;
+        InkToolbarToolButton currentActiveTool;
         bool inkCleared = false;
 
         const float dipsPerMm = 96 / 25.4f;
@@ -97,6 +98,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             redoStrokes = new Stack<InkStroke>();
             clearedStrokes = new List<InkStroke>();
+            currentActiveTool = ballpointPen;
         }
 
         #region Event Handlers
@@ -129,6 +131,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             clearedStrokes.Clear();
             inkCleared = false;
+
+            currentActiveTool = inkToolbar.ActiveTool;
         }
 
         private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
@@ -137,20 +141,21 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             {
                 redoStrokes.Push(stroke);
             }
+
+            currentActiveTool = inkToolbar.ActiveTool;
         }
 
         private void InkToolbar_ActiveToolChanged(InkToolbar sender, object args)
-        {
-            if (sender.ActiveTool is InkToolbarCustomToolButton)
+        {            
+            if (inkToolbar.ActiveTool is InkToolbarCustomToolButton)
             {
-                sender.ActiveTool.IsChecked = false;
+                inkToolbar.ActiveTool.IsChecked = false;
+                inkToolbar.ActiveTool = currentActiveTool;
             }
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
-            undoButton.IsChecked = false;
-
             if (inkCleared)
             {
                 foreach (var stroke in clearedStrokes)
@@ -160,6 +165,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                 clearedStrokes.Clear();
                 inkCleared = false;
+            }
+            else if (currentActiveTool is InkToolbarEraserButton)
+            {
+                RedoButton_Click(null, null);
             }
             else
             {
@@ -178,8 +187,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
-            redoButton.IsChecked = false;
-
             if (redoStrokes.Count > 0)
             {
                 var stroke = redoStrokes.Pop();

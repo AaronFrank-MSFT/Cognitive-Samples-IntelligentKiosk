@@ -48,9 +48,9 @@
 
                     <Viewbox Grid.Column="0" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="10,5,0,0">
                         <InkToolbar Grid.Column="0" x:Name="inkToolbar" InitialControls="None" ActiveToolChanged="InkToolbar_ActiveToolChanged" TargetInkCanvas="{x:Bind Path=inkCanvas}" RequestedTheme="Light" Background="#26000000">
-                            <InkToolbarBallpointPenButton/>
-                            <InkToolbarPencilButton/>
-                            <InkToolbarEraserButton IsClearAllVisible="False"/>
+                            <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
+                            <InkToolbarPencilButton x:Name="pencil"/>
+                            <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
                             <InkToolbarCustomToolButton x:Name="undoButton" Click="UndoButton_Click" ToolTipService.ToolTip="Undo">
                                 <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
                             </InkToolbarCustomToolButton>
