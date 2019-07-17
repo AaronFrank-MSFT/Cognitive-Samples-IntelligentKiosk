@@ -59,7 +59,7 @@
                                         </InkToolbarCustomToggleButton>
                                     </InkToolbar>
 
-                                    <Rectangle Height="32" Width="1" Fill="Gray" />
+                                    <Rectangle Height="24" Width="1" Fill="Gray" />
 
                                     <!-- To keep styling of custom buttons the same, they are placed in a non-functional ink toolbar -->
                                     <!-- If custom toolbar buttons are place in the same ink toolbar their position in the toolbar cannot be changed -->

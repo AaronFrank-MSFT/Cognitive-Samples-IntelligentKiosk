@@ -19,6 +19,7 @@ namespace ServiceHelpers
 
         public IDictionary<uint, InkStroke> StrokeMap { get; set; }
         public string LanguageCode { get; set; } = "en-US";
+        public bool IsRecognizing { get; set; } = false;
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
@@ -125,12 +126,6 @@ namespace ServiceHelpers
             var httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
 
             return httpResponse;
-        }
-
-        public string FormatJson(string json)
-        {
-            dynamic parsedJson = JsonConvert.DeserializeObject(json);
-            return JsonConvert.SerializeObject(parsedJson, Formatting.Indented);
         }
     }
 }
