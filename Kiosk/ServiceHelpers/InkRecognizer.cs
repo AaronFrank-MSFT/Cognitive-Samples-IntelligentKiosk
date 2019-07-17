@@ -120,25 +120,11 @@ namespace ServiceHelpers
 
         public async Task<HttpResponseMessage> RecognizeAsync(JsonObject json)
         {
-            try
-            {
-                string payload = json.Stringify();
-                var httpContent = new StringContent(payload, Encoding.UTF8, "application/json");
-                var httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
+            string payload = json.Stringify();
+            var httpContent = new StringContent(payload, Encoding.UTF8, "application/json");
+            var httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
 
-                // Throw exception for malformed/unauthorized http requests
-                if (httpResponse.StatusCode == HttpStatusCode.BadRequest || httpResponse.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    var errorJson = await httpResponse.Content.ReadAsStringAsync();
-                    var error = JsonConvert.DeserializeObject(errorJson);
-                    throw new HttpRequestException(error.ToString());
-                }
-                return httpResponse;
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
+            return httpResponse;
         }
 
         public string FormatJson(string json)
