@@ -19,7 +19,6 @@ namespace ServiceHelpers
 
         public IDictionary<uint, InkStroke> StrokeMap { get; set; }
         public string LanguageCode { get; set; } = "en-US";
-        public bool IsRecognizing { get; set; } = false;
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {

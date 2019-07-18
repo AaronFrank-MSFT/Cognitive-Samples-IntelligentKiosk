@@ -59,19 +59,19 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
     {
         // API key and endpoint information for ink recognition request
         string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-        const string endpoint = "https://api.cognitive.microsoft.com";
+        const string endpoint = "https://api.cognitive.microsoft.com/";
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
         ServiceHelpers.InkRecognizer inkRecognizer;
         InkResponse inkResponse;
 
         Dictionary<int, InkRecognitionUnit> recoTreeNodes;
-        LinkedList<InkRecognitionUnit> recoTreeParentNodes;
+        List<InkRecognitionUnit> recoTreeParentNodes;
         Dictionary<int, Tuple<string, Color>> recoText;
 
         Stack<InkStroke> redoStrokes;
         List<InkStroke> clearedStrokes;
-        InkToolbarToolButton currentActiveTool;
+        InkToolbarToolButton activeTool;
         bool inkCleared = false;
 
         const float dipsPerMm = 96 / 25.4f;
@@ -94,12 +94,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
-            recoTreeParentNodes = new LinkedList<InkRecognitionUnit>();
+            recoTreeParentNodes = new List<InkRecognitionUnit>();
             recoText = new Dictionary<int, Tuple<string, Color>>();
 
             redoStrokes = new Stack<InkStroke>();
             clearedStrokes = new List<InkStroke>();
-            currentActiveTool = ballpointPen;
+            activeTool = ballpointPen;
 
             customToolbar.ActiveTool = null;
         }
@@ -135,7 +135,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             clearedStrokes.Clear();
             inkCleared = false;
 
-            currentActiveTool = inkToolbar.ActiveTool;
+            activeTool = inkToolbar.ActiveTool;
         }
 
         private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
@@ -146,7 +146,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 redoStrokes.Push(stroke);
             }
 
-            currentActiveTool = inkToolbar.ActiveTool;
+            activeTool = inkToolbar.ActiveTool;
         }
 
         private void CustomToolbar_ActiveToolChanged(InkToolbar sender, object args)
@@ -168,7 +168,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 clearedStrokes.Clear();
                 inkCleared = false;
             }
-            else if (currentActiveTool is InkToolbarEraserButton)
+            else if (activeTool is InkToolbarEraserButton)
             {
                 RedoButton_Click(null, null);
             }
@@ -254,23 +254,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                 // Recognize Ink from JSON and display response
                 var response = await inkRecognizer.RecognizeAsync(json);
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    await new MessageDialog("Please validate the Ink Recognizer API key used in the settings page is correct", "Unauthorized Request").ShowAsync();
-                    ToggleProgressRing();
+                string responseString = await response.Content.ReadAsStringAsync();
+                inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
 
-                    return;
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    // Generate JSON tree view and draw result on right side canvas
+                    CreateJsonTree();
+                    responseJson.Text = FormatJson(responseString);
+                    resultCanvas.Invalidate();
                 }
                 else
                 {
-                    string responseString = await response.Content.ReadAsStringAsync();
-                    inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
-                    responseJson.Text = FormatJson(responseString);
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        await new MessageDialog("Please validate the Ink Recognizer API key used in the settings page is correct", "Unauthorized Request").ShowAsync();
+                    }
+                    else
+                    {
+                        await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                    }
                 }
-
-                // Generate JSON tree view and draw result on right side canvas
-                CreateJsonTree();
-                resultCanvas.Invalidate();
 
                 // Re-enable use of toolbar after recognition and rendering
                 ToggleInkToolbar();
@@ -419,9 +423,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             float centerPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
             var centerPoint = new Vector2(centerPointX, centerPointY);
 
-            float slope = (bottomRightY - bottomLeftY) / (bottomRightX - bottomLeftX);
-            var radians = Math.Atan(slope);
-            args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, centerPoint);
+            Matrix3x2 angle = GetRotationAngle(bottomLeftX, bottomRightX, bottomLeftY, bottomRightY, centerPoint);
+
+            args.DrawingSession.Transform = angle;
 
             var textFormat = new CanvasTextFormat()
             {
@@ -509,9 +513,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             float transformCenterPointY = ((topLeftY + bottomLeftY) / 2) * dipsPerMm;
             var transformCenterPoint = new Vector2(transformCenterPointX, transformCenterPointY);
 
-            float slope = (bottomRightY - bottomLeftY) / (bottomRightX - bottomLeftX);
-            double radians = Math.Atan(slope);
-            args.DrawingSession.Transform = Matrix3x2.CreateRotation((float)radians, transformCenterPoint);
+            Matrix3x2 angle = GetRotationAngle(bottomLeftX, bottomRightX, bottomLeftY, bottomRightY, transformCenterPoint);
+
+            args.DrawingSession.Transform = angle;
 
             // Color of ellipse
             var color = GetStrokeColor(recoUnit);
@@ -572,17 +576,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 var points = pointList.ToArray();
                 var shape = CanvasGeometry.CreatePolygon(sender.Device, points);
 
-                var strokeIds = recoUnit.strokeIds;
-                uint strokeId = uint.MaxValue;
-                foreach (var item in strokeIds)
-                {
-                    var id = (uint)item;
-                    if (id < strokeId)
-                    {
-                        strokeId = id;
-                    }
-                }
-
                 // Color of polygon
                 var color = GetStrokeColor(recoUnit);
 
@@ -598,9 +591,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #region JSON To Tree View
         private void CreateJsonTree()
         {
-            recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
-            recoTreeParentNodes = new LinkedList<InkRecognitionUnit>();
-
             // Add all of the ink recognition units that will become nodes to a collection
             foreach (var recoUnit in inkResponse.RecognitionUnits)
             {
@@ -610,7 +600,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 // If the ink recognition unit is a top level node in the tree add it to a linked list to preserve order
                 if (recoUnit.parentId == 0)
                 {
-                    recoTreeParentNodes.AddFirst(recoUnit);
+                    recoTreeParentNodes.Add(recoUnit);
                 }
             }
 
@@ -622,21 +612,20 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             };
 
             // Traverse the linked list of top level parent nodes and append children if they have any
-            var current = recoTreeParentNodes.First;
-            while (current != null)
+            foreach (var parent in recoTreeParentNodes)
             {
-                string category = current.Value.category;
+                string category = parent.category;
 
                 var node = new TreeViewNode();
 
                 if (category == "writingRegion")
                 {
-                    string childCount = $"{current.Value.childIds.Count} item{(current.Value.childIds.Count > 1 ? "s" : string.Empty)}";
+                    string childCount = $"{parent.childIds.Count} item{(parent.childIds.Count > 1 ? "s" : string.Empty)}";
 
                     node.Content = new KeyValuePair<string, string>(category, childCount);
 
                     // Recursively append all children
-                    var childNodes = GetChildNodes(current.Value);
+                    var childNodes = GetChildNodes(parent);
                     foreach (var child in childNodes)
                     {
                         node.Children.Add(child);
@@ -644,11 +633,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 }
                 else
                 {
-                    node.Content = new KeyValuePair<string, string>(category, current.Value.recognizedObject);
+                    node.Content = new KeyValuePair<string, string>(category, parent.recognizedObject);
                 }
 
                 root.Children.Add(node);
-                current = current.Next;
             }
 
             root.IsExpanded = true;
@@ -750,6 +738,16 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             float distance = (float)Math.Sqrt(x + y);
 
             return distance;
+        }
+
+        private Matrix3x2 GetRotationAngle(float x1, float x2, float y1, float y2, Vector2 centerPoint)
+        {
+            float slope = (y2 - y1) / (x2 - x1);
+            float radians = (float)Math.Atan(slope);
+
+            var angle = Matrix3x2.CreateRotation(radians, centerPoint);
+
+            return angle;
         }
 
         private Color GetStrokeColor(InkRecognitionUnit recoUnit)
