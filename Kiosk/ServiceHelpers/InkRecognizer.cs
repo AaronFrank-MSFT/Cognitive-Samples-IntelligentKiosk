@@ -18,7 +18,7 @@ namespace ServiceHelpers
         HttpClient httpClient;
 
         public IDictionary<uint, InkStroke> StrokeMap { get; set; }
-        public string LanguageCode { get; set; } = "en-US";
+        public string LanguageCode { get; set; }
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
@@ -28,53 +28,12 @@ namespace ServiceHelpers
             this.inkRecognitionUrl = inkRecognitionUrl;
 
             StrokeMap = new Dictionary<uint, InkStroke>();
+            LanguageCode = "en-US";
         }
 
         public void AddStroke(InkStroke stroke)
         {
             StrokeMap[stroke.Id] = stroke;
-        }
-
-        public void RemoveStroke(uint strokeId)
-        {
-            StrokeMap.Remove(strokeId);
-        }
-
-        public void SetLanguage(string language)
-        {
-            switch (language)
-            {
-                case "Chinese (Simplified)":
-                    LanguageCode = "zh-CN";
-                    break;
-                case "Chinese (Traditional)":
-                    LanguageCode = "zh-TW";
-                    break;
-                case "English (US)":
-                    LanguageCode = "en-US";
-                    break;
-                case "English (UK)":
-                    LanguageCode = "en-GB";
-                    break;
-                case "French":
-                    LanguageCode = "fr-FR";
-                    break;
-                case "German":
-                    LanguageCode = "de-DE";
-                    break;
-                case "Italian":
-                    LanguageCode = "it-IT";
-                    break;
-                case "Japanese":
-                    LanguageCode = "ja-JP";
-                    break;
-                case "Korean":
-                    LanguageCode = "ko-KR";
-                    break;
-                case "Spanish":
-                    LanguageCode = "es-ES";
-                    break;                    
-            }
         }
 
         public JsonObject ConvertInkToJson()

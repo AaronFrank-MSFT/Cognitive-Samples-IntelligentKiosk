@@ -131,9 +131,6 @@
     <Compile Include="Controls\ImagePickerControl.xaml.cs">
       <DependentUpon>ImagePickerControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Controls\InkRecoUnitControl.xaml.cs">
-      <DependentUpon>InkRecoUnitControl.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Controls\TagScoreControl.xaml.cs">
       <DependentUpon>TagScoreControl.xaml</DependentUpon>
     </Compile>
@@ -242,6 +239,12 @@
     <Compile Include="Views\ImageCollectionInsights\ImageProcessor.cs" />
     <Compile Include="Views\ImageCollectionInsights\TagFilterViewModel.cs" />
     <Compile Include="Views\ImageCollectionInsights\VisionInsights.cs" />
+    <Compile Include="Views\InkRecognizerExplorer\InkRecognizerExplorer.xaml.cs">
+      <DependentUpon>InkRecognizerExplorer.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\InkRecognizerExplorer\FormFiller.xaml.cs">
+      <DependentUpon>FormFiller.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\MallKioskPage.xaml.cs">
       <DependentUpon>MallKioskPage.xaml</DependentUpon>
     </Compile>
@@ -277,8 +280,8 @@
     <Compile Include="Controls\ImageSearchUserControl.xaml.cs">
       <DependentUpon>ImageSearchUserControl.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\InkRecognizerExplorer.xaml.cs">
-      <DependentUpon>InkRecognizerExplorer.xaml</DependentUpon>
+    <Compile Include="Views\InkRecognizerExplorer\DualCanvas.xaml.cs">
+      <DependentUpon>DualCanvas.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\TranslatorExplorer\AlternativeTranslationsControl.xaml.cs">
       <DependentUpon>AlternativeTranslationsControl.xaml</DependentUpon>
@@ -344,10 +347,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Controls\ImagePickerControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Controls\InkRecoUnitControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -476,6 +475,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Views\InkRecognizerExplorer\InkRecognizerExplorer.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\InkRecognizerExplorer\FormFiller.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Views\MallKioskPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -520,7 +527,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Views\InkRecognizerExplorer.xaml">
+    <Page Include="Views\InkRecognizerExplorer\DualCanvas.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

@@ -54,8 +54,8 @@ using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
-    [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
-    public sealed partial class InkRecognizerExplorer : Page
+    //[KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
+    public sealed partial class DualCanvas : Page
     {
         // API key and endpoint information for ink recognition request
         string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
@@ -81,7 +81,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         Symbol ClearAll = (Symbol)0xE74D;
         Symbol TouchWriting = (Symbol)0xED5F;
 
-        public InkRecognizerExplorer()
+        public DualCanvas()
         {
             this.InitializeComponent();
 
@@ -226,6 +226,18 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
+        private void LanguageDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (inkRecognizer != null)
+            {
+                var dropdown = sender as ComboBox;
+                var selectedItem = dropdown.SelectedItem as ComboBoxItem;
+                string languageCode = selectedItem.Name.Insert(2, "-");
+
+                inkRecognizer.LanguageCode = languageCode;
+            }
+        }
+
         private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
         {
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
@@ -236,9 +248,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 ClearJson();
 
                 // Convert Ink to JSON for request and display it
-                string selectedLanguage = languageDropdown.SelectedItem.ToString();
-                inkRecognizer.SetLanguage(selectedLanguage);
-
                 inkRecognizer.StrokeMap.Clear();
                 foreach (var stroke in strokes)
                 {
