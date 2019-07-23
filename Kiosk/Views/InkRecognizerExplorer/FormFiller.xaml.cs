@@ -32,6 +32,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using Microsoft.Toolkit.Uwp.UI.Controls;
 using Windows.UI.Xaml.Controls;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
@@ -41,6 +42,25 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         public FormFiller()
         {
             this.InitializeComponent();
+        }
+
+        private void ExpandAllButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            var children = stack.Children;
+            foreach (var child in stack.Children)
+            {
+                var element = child as Expander;
+                element.IsExpanded = true;
+            }
+        }
+
+        private void CollapseAllButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            foreach (var child in stack.Children)
+            {
+                var element = child as Expander;
+                element.IsExpanded = false;
+            }
         }
     }
 }

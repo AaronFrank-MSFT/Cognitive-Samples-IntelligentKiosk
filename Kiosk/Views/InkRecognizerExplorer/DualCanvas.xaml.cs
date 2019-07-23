@@ -76,10 +76,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         const float dipsPerMm = 96 / 25.4f;
 
+        Symbol TouchWriting = (Symbol)0xED5F;
         Symbol Undo = (Symbol)0xE7A7;
         Symbol Redo = (Symbol)0xE7A6;
         Symbol ClearAll = (Symbol)0xE74D;
-        Symbol TouchWriting = (Symbol)0xED5F;
+        Symbol Save = (Symbol)0xE74E;
 
         public DualCanvas()
         {
@@ -106,27 +107,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         #region Event Handlers
         protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
             {
-                if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
-                {
-                    await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
-                }
-                else
-                {
-                    var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
-                    if (file != null)
-                    {
-                        using (var stream = await file.OpenSequentialReadAsync())
-                        {
-                            await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
-                        }
-                    }
-
-                    RecognizeButton_Click(null, null);
-                }
-
-                base.OnNavigatedTo(e);
+                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
             }
+            else
+            {
+                var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
+                if (file != null)
+                {
+                    using (var stream = await file.OpenSequentialReadAsync())
+                    {
+                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
+                    }
+                }
+
+                RecognizeButton_Click(null, null);
+            }
+
+            base.OnNavigatedTo(e);
+        }
 
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
         {
@@ -150,7 +151,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         }
 
         private void CustomToolbar_ActiveToolChanged(InkToolbar sender, object args)
-        {            
+        {
             customToolbar.ActiveTool.IsChecked = false;
         }
 
@@ -324,6 +325,28 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             {
                 node.IsExpanded = false;
             }
+        }
+
+        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            expandAllButton.Visibility = Visibility.Collapsed;
+            collapseAllButton.Visibility = Visibility.Visible;
+
+            var node = treeView.RootNodes[0];
+            node.IsExpanded = true;
+
+            ExpandChildren(node);
+        }
+
+        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            collapseAllButton.Visibility = Visibility.Collapsed;
+            expandAllButton.Visibility = Visibility.Visible;
+
+            var node = treeView.RootNodes[0];
+            node.IsExpanded = true;
+
+            CollapseChildren(node);
         }
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
@@ -514,7 +537,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var centerPoint = new Vector2(centerPointX * dipsPerMm, centerPointY * dipsPerMm);
 
             // X and Y diameter of ellipse
-            float diameterX = GetDistanceBetweenPoints(bottomLeftX, bottomRightX, bottomLeftY, bottomRightY) * dipsPerMm;            
+            float diameterX = GetDistanceBetweenPoints(bottomLeftX, bottomRightX, bottomLeftY, bottomRightY) * dipsPerMm;
             float diameterY = GetDistanceBetweenPoints(topRightX, bottomRightX, topRightY, bottomRightY) * dipsPerMm;
 
             // Transform to get correct angle of ellipse
@@ -619,6 +642,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             {
                 Content = new KeyValuePair<string, string>("Root", itemCount)
             };
+
 
             // Traverse the linked list of top level parent nodes and append children if they have any
             foreach (var parent in recoTreeParentNodes)
@@ -776,6 +800,71 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             return strokeWidth;
         }
+
+        private void ExpandChildren(TreeViewNode node)
+        {
+            if (node.HasChildren)
+            {
+                var children = node.Children;
+
+                foreach (var child in children)
+                {
+                    child.IsExpanded = true;
+
+                    if (child.HasChildren)
+                    {
+                        ExpandChildren(child);
+                    }
+                }
+            }
+        }
+
+        private void CollapseChildren(TreeViewNode node)
+        {
+            if (node.HasChildren)
+            {
+                var children = node.Children;
+
+                foreach (var child in children)
+                {
+                    child.IsExpanded = false;
+
+                    if (child.HasChildren)
+                    {
+                        CollapseChildren(child);
+                    }
+                }
+            }
+        }
         #endregion
+
+        // Temporary to save initial ink
+        private async void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (inkCanvas.InkPresenter.StrokeContainer.GetStrokes().Count == 0)
+            {
+                return;
+            }
+
+            var savePicker = new Windows.Storage.Pickers.FileSavePicker
+            {
+                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.PicturesLibrary
+            };
+            savePicker.FileTypeChoices.Add("Gif with embedded ISF", new List<string> { ".gif" });
+
+            StorageFile file = await savePicker.PickSaveFileAsync();
+            if (file == null)
+            {
+                return;
+            }
+
+            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+            {
+                if (file.FileType == ".gif")
+                {
+                    await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(stream);
+                }
+            }
+        }
     }
 }

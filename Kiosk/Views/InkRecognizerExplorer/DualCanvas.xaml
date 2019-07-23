@@ -60,6 +60,11 @@
                                 <InkToolbarCustomToolButton x:Name="clearButton" Click="ClearButton_Click" ToolTipService.ToolTip="Clear All">
                                     <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
                                 </InkToolbarCustomToolButton>
+                                
+                                <!-- Temporary to save initial ink -->
+                                <InkToolbarCustomToolButton x:Name="saveButton" Click="SaveButton_Click" ToolTipService.ToolTip="Save">
+                                    <SymbolIcon Symbol="{x:Bind Path=Save}"/>
+                                </InkToolbarCustomToolButton>
                             </InkToolbar>
                         </StackPanel>
                     </Viewbox>
@@ -104,11 +109,16 @@
 
                     <Pivot Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="jsonPivot" Visibility="Collapsed" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,10">
                         <PivotItem Header="Tree View" Margin="10,10,10,0">
-                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black">
-                                <controls:TreeView Grid.Column="1" x:Name="treeView" RequestedTheme="Dark" CanDragItems="False" ItemInvoked="TreeView_ItemInvoked">
+                            <Grid BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="18*"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <controls:TreeView Grid.Row="0" x:Name="treeView" RequestedTheme="Dark" CanDragItems="False" ItemInvoked="TreeView_ItemInvoked">
                                     <controls:TreeView.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid x:Name="treeViewContent">
+                                            <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="auto"/>
                                                     <RowDefinition Height="auto"/>
@@ -125,7 +135,18 @@
                                         </DataTemplate>
                                     </controls:TreeView.ItemTemplate>
                                 </controls:TreeView>
-                            </Border>
+
+                                <Viewbox Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,5,5">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="expandAllButton" Click="ExpandAllButton_Click" Width="100" RequestedTheme="Dark">
+                                            <TextBlock Text="Expand All" FontWeight="SemiBold"/>
+                                        </Button>
+                                        <Button x:Name="collapseAllButton" Visibility="Collapsed" Click="CollapseAllButton_Click" Width="100" RequestedTheme="Dark">
+                                            <TextBlock Text="Collapse All" FontWeight="SemiBold"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Viewbox>
+                            </Grid>
                         </PivotItem>
 
                         <PivotItem Header="Request JSON" Margin="10,10,10,0" VerticalAlignment="Stretch">

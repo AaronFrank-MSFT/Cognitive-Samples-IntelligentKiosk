@@ -6,15 +6,44 @@
     xmlns:ctl="using:IntelligentKioskSample.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
-    xmlns:controls="using:Windows.UI.Xaml.Controls"
+    xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
     mc:Ignorable="d"
     x:Name="mainPage"
     Background="Black">
 
     <Grid>
-        <Grid Background="White">
+        <Grid Background="White" Margin="12,10,12,50">
+            <StackPanel>
+                <StackPanel>
+                    <Button x:Name="expandAllButton" Content="Expand All" RequestedTheme="Light" Click="ExpandAllButton_Click"/>
+                    <Button x:Name="collapseAllButton" Content="Collapse All" RequestedTheme="Light" Click="CollapseAllButton_Click"/>
+                </StackPanel>
+                <StackPanel x:Name="stack" RequestedTheme="Light">
+                    <controls:Expander Header="Expander1" Background="White">
+                        <controls:Expander.ContentOverlay>
+                            <TextBlock Text="Reco Result" Margin="38,0,0,0"/>
+                        </controls:Expander.ContentOverlay>
 
+                        <Grid>
+                            <Border BorderBrush="Black" BorderThickness="1" Margin="0,10,0,0">
+                                <TextBlock Text="EXPANDED CONTENT" Margin="100,10,100,10"/>
+                            </Border>
+                        </Grid>
+                    </controls:Expander>
+
+                    <controls:Expander Header="Expander2" Background="White" Margin="0,20,0,0">
+                        <controls:Expander.ContentOverlay>
+                            <TextBlock Text="Reco Result" Margin="38,0,0,0"/>
+                        </controls:Expander.ContentOverlay>
+
+                        <Grid>
+                            <Border BorderBrush="Black" BorderThickness="1" Margin="0,10,0,0">
+                                <TextBlock Text="EXPANDED CONTENT" Padding="100"/>
+                            </Border>
+                        </Grid>
+                    </controls:Expander>
+                </StackPanel>
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>
