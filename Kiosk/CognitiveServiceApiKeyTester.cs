@@ -11,6 +11,9 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Data.Json;
+using Windows.Foundation;
+using Windows.UI.Input.Inking;
 
 namespace IntelligentKioskSample
 {
@@ -153,6 +156,24 @@ namespace IntelligentKioskSample
             }
 
             return response;
+        }
+
+        public static async Task TestInkRecognizerApiKeyAsync(string key, string apiEndpoint)
+        {
+            bool isUri = !string.IsNullOrEmpty(apiEndpoint) ? Uri.IsWellFormedUriString(apiEndpoint, UriKind.Absolute) : false;
+            if (!isUri)
+            {
+                throw new ArgumentException("Invalid URI");
+            }
+            else
+            {
+                string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
+                var inkRecognizer = new ServiceHelpers.InkRecognizer(key, apiEndpoint, inkRecognitionUrl);
+
+                JsonObject json = inkRecognizer.ConvertInkToJson();
+                var response = await inkRecognizer.RecognizeAsync(json);
+                response.EnsureSuccessStatusCode();
+            }
         }
     }
 

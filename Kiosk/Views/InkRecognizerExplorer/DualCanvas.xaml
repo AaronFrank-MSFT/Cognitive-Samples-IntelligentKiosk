@@ -33,7 +33,7 @@
                         <RowDefinition Height="18*"/>
                     </Grid.RowDefinitions>
 
-                    <InkCanvas Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                    <InkCanvas Grid.ColumnSpan="2" Grid.Row="1" x:Name="inkCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
 
                     <Viewbox Grid.Column="0" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="10,5,0,0">
                         <StackPanel Orientation="Horizontal" Background="LightGray">
@@ -62,25 +62,26 @@
                                 </InkToolbarCustomToolButton>
                                 
                                 <!-- Temporary to save initial ink -->
-                                <InkToolbarCustomToolButton x:Name="saveButton" Click="SaveButton_Click" ToolTipService.ToolTip="Save">
+                                <!--<InkToolbarCustomToolButton x:Name="saveButton" Click="SaveButton_Click" ToolTipService.ToolTip="Save">
                                     <SymbolIcon Symbol="{x:Bind Path=Save}"/>
-                                </InkToolbarCustomToolButton>
+                                </InkToolbarCustomToolButton>-->
                             </InkToolbar>
                         </StackPanel>
                     </Viewbox>
 
                     <Viewbox Grid.Column="1" VerticalAlignment="Stretch" Margin="0,5,10,0">
                         <StackPanel Orientation="Horizontal" >
-                            <ComboBox x:Name="languageDropdown" SelectionChanged="LanguageDropdown_SelectionChanged" SelectedIndex="2" Width="175" RequestedTheme="Light">
+                            <ComboBox x:Name="languageDropdown" SelectionChanged="LanguageDropdown_SelectionChanged" SelectedIndex="3" Width="175" RequestedTheme="Light">
                                 <ComboBoxItem Name="zhCN" Content="Chinese (Simplified)"/>
                                 <ComboBoxItem Name="zhTW" Content="Chinese (Traditional)"/>
-                                <ComboBoxItem Name="enUS" Content="English (US)"/>
                                 <ComboBoxItem Name="enGB" Content="English (UK)"/>
+                                <ComboBoxItem Name="enUS" Content="English (US)"/>
                                 <ComboBoxItem Name="frFR" Content="French"/>
                                 <ComboBoxItem Name="deDE" Content="German"/>
                                 <ComboBoxItem Name="itIT" Content="Italian"/>
                                 <ComboBoxItem Name="jaJP" Content="Japanese"/>
                                 <ComboBoxItem Name="koKR" Content="Korean"/>
+                                <ComboBoxItem Name="ptPT" Content="Portuguese"/>
                                 <ComboBoxItem Name="esES" Content="Spanish"/>
                             </ComboBox>
 
@@ -105,13 +106,13 @@
                         <RowDefinition Height="18*"/>
                     </Grid.RowDefinitions>
 
-                    <canvas:CanvasControl Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="resultCanvas" Draw="ResultCanvas_Draw" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                    <canvas:CanvasControl Grid.ColumnSpan="2" Grid.Row="2" x:Name="resultCanvas" Draw="ResultCanvas_Draw" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
 
-                    <Pivot Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="jsonPivot" Visibility="Collapsed" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,10">
+                    <Pivot  Grid.ColumnSpan="2" Grid.RowSpan="2" x:Name="jsonPivot" Visibility="Collapsed" RequestedTheme="Light" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,10">
                         <PivotItem Header="Tree View" Margin="10,10,10,0">
                             <Grid BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="18*"/>
+                                    <RowDefinition Height="15*"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
@@ -120,23 +121,23 @@
                                         <DataTemplate>
                                             <Grid>
                                                 <Grid.RowDefinitions>
-                                                    <RowDefinition Height="auto"/>
-                                                    <RowDefinition Height="auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-
+                                                
                                                 <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
                                                     <TextBlock Text="{Binding Content.Key}"/>
                                                     <TextBlock Text=":"/>
                                                     <TextBlock Text="{Binding Content.Value}" Margin="12,0,0,0" Opacity="0.5"/>
                                                 </StackPanel>
 
-                                                <Rectangle Grid.Row="1" Fill="White" Height="1" Opacity="0.3" Margin="0,4,0,0" Width="Auto" HorizontalAlignment="Left"/>
+                                                <Rectangle Grid.Row="1" Fill="White" Height="1" Width="2000" Opacity="0.3" Margin="0,4,0,0"/>
                                             </Grid>
                                         </DataTemplate>
                                     </controls:TreeView.ItemTemplate>
                                 </controls:TreeView>
-
-                                <Viewbox Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,5,5">
+                                    
+                                <Viewbox Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,5,5,5">
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="expandAllButton" Click="ExpandAllButton_Click" Width="100" RequestedTheme="Dark">
                                             <TextBlock Text="Expand All" FontWeight="SemiBold"/>
@@ -150,7 +151,7 @@
                         </PivotItem>
 
                         <PivotItem Header="Request JSON" Margin="10,10,10,0" VerticalAlignment="Stretch">
-                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,0">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,10">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <TextBlock x:Name="requestJson" RequestedTheme="Dark" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 </ScrollViewer>
@@ -158,7 +159,7 @@
                         </PivotItem>
 
                         <PivotItem Header="Response JSON" Margin="10,10,10,0">
-                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,0">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,10">
                                 <ScrollViewer>
                                     <TextBlock x:Name="responseJson" RequestedTheme="Dark" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
                                 </ScrollViewer>

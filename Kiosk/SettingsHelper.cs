@@ -42,6 +42,7 @@ namespace IntelligentKioskSample
     internal class SettingsHelper : INotifyPropertyChanged
     {
         public static readonly string DefaultApiEndpoint = "https://westus.api.cognitive.microsoft.com";
+        public static readonly string DefaultInkRecognizerApiEndpoint = "https://api.cognitive.microsoft.com";
         public static readonly string CustomEndpointName = "Custom";
 
         public static readonly string[] AvailableApiRegions = new string[]
@@ -267,6 +268,23 @@ namespace IntelligentKioskSample
             if (value != null)
             {
                 this.InkRecognizerApiKey = value.ToString();
+            }
+
+            value = ApplicationData.Current.RoamingSettings.Values["InkRecognizerApiKeyEndpoint"];
+            if (value == null && ApplicationData.Current.RoamingSettings.Values["InkRecognizerApiKeyRegion"] != null)
+            {
+                var inkRecognizerApiRegion = ApplicationData.Current.RoamingSettings.Values["InkRecognizerApiKeyRegion"].ToString();
+                value = GetRegionEndpoint(inkRecognizerApiRegion);
+            }
+            if (value != null)
+            {
+                this.InkRecognizerApiKeyEndpoint = value.ToString();
+            }
+
+            value = ApplicationData.Current.RoamingSettings.Values["CustomInkRecognizerEndpoint"];
+            if (value != null)
+            {
+                this.CustomInkRecognizerEndpoint = value.ToString();
             }
 
             // load mall kiosk demo custom settings from file as the content is too big to be saved as a string-like setting
@@ -567,6 +585,55 @@ namespace IntelligentKioskSample
             {
                 this.inkRecognizerApiKey = value;
                 this.OnSettingChanged("InkRecognizerApiKey", value);
+            }
+        }
+
+        private string inkRecognizerApiKeyEndpoint = DefaultInkRecognizerApiEndpoint;
+        public string InkRecognizerApiKeyEndpoint
+        {
+            get
+            {
+                return string.Equals(this.inkRecognizerApiKeyEndpoint, SettingsHelper.CustomEndpointName, StringComparison.OrdinalIgnoreCase)
+                    ? this.customInkRecognizerEndpoint
+                    : this.inkRecognizerApiKeyEndpoint;
+            }
+            set
+            {
+                this.inkRecognizerApiKeyEndpoint = value;
+                this.OnSettingChanged("InkRecognizerApiKeyEndpoint", value);
+            }
+        }
+
+        public string BindingInkRecognizerApiKeyEndpoint
+        {
+            get { return this.inkRecognizerApiKeyEndpoint; }
+            set
+            {
+                this.inkRecognizerApiKeyEndpoint = value;
+                this.OnSettingChanged("InkRecognizerApiKeyEndpoint", value);
+            }
+        }
+
+        private string customInkRecognizerEndpoint = string.Empty;
+        public string CustomInkRecognizerEndpoint
+        {
+            get { return this.customInkRecognizerEndpoint; }
+            set
+            {
+                this.customInkRecognizerEndpoint = value;
+                this.OnSettingChanged("CustomInkRecognizerEndpoint", value);
+            }
+        }
+
+        public string[] InkRecognizerEndpoints
+        {
+            get
+            {
+                return new string[]
+                {
+                    CustomEndpointName,
+                    "https://api.cognitive.microsoft.com"
+                };
             }
         }
 

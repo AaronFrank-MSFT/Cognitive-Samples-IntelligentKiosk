@@ -59,7 +59,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
     {
         // API key and endpoint information for ink recognition request
         string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-        const string endpoint = "https://api.cognitive.microsoft.com/";
+        string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
         ServiceHelpers.InkRecognizer inkRecognizer;
@@ -76,11 +76,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         const float dipsPerMm = 96 / 25.4f;
 
-        Symbol TouchWriting = (Symbol)0xED5F;
-        Symbol Undo = (Symbol)0xE7A7;
-        Symbol Redo = (Symbol)0xE7A6;
-        Symbol ClearAll = (Symbol)0xE74D;
-        Symbol Save = (Symbol)0xE74E;
+        private Symbol TouchWriting = (Symbol)0xED5F;
+        private Symbol Undo = (Symbol)0xE7A7;
+        private Symbol Redo = (Symbol)0xE7A6;
+        private Symbol ClearAll = (Symbol)0xE74D;
+
+        // Temporary to save initial ink
+        private Symbol Save = (Symbol)0xE74E;
 
         public DualCanvas()
         {
@@ -276,9 +278,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 }
                 else
                 {
-                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
                     {
-                        await new MessageDialog("Please validate the Ink Recognizer API key used in the settings page is correct", "Unauthorized Request").ShowAsync();
+                        await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
                     }
                     else
                     {
@@ -332,10 +334,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             expandAllButton.Visibility = Visibility.Collapsed;
             collapseAllButton.Visibility = Visibility.Visible;
 
-            var node = treeView.RootNodes[0];
-            node.IsExpanded = true;
+            if (treeView.RootNodes.Count > 0)
+            {
+                var node = treeView.RootNodes[0];
+                node.IsExpanded = true;
 
-            ExpandChildren(node);
+                ExpandChildren(node);
+            }
         }
 
         private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
@@ -343,10 +348,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             collapseAllButton.Visibility = Visibility.Collapsed;
             expandAllButton.Visibility = Visibility.Visible;
 
-            var node = treeView.RootNodes[0];
-            node.IsExpanded = true;
+            if (treeView.RootNodes.Count > 0)
+            {
+                var node = treeView.RootNodes[0];
+                node.IsExpanded = true;
 
-            CollapseChildren(node);
+                CollapseChildren(node);
+            }
         }
 
         private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
@@ -606,7 +614,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 }
 
                 var points = pointList.ToArray();
-                var shape = CanvasGeometry.CreatePolygon(sender.Device, points);
+                var shape = CanvasGeometry.CreatePolygon(args.DrawingSession, points);
 
                 // Color of polygon
                 var color = GetStrokeColor(recoUnit);
@@ -672,6 +680,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 root.Children.Add(node);
             }
 
+            recoTreeNodes.Clear();
+            recoTreeParentNodes.Clear();
+
             root.IsExpanded = true;
             treeView.RootNodes.Add(root);
         }
@@ -720,8 +731,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             requestJson.Text = string.Empty;
             responseJson.Text = string.Empty;
             treeView.RootNodes.Clear();
-            recoTreeNodes.Clear();
-            recoTreeParentNodes.Clear();
             resultCanvas.Invalidate();
         }
 
