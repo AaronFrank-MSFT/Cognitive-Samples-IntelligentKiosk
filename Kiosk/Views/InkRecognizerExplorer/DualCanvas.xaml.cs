@@ -43,6 +43,7 @@ using System.Net;
 using System.Numerics;
 using Windows.Data.Json;
 using Windows.Foundation;
+using Windows.Graphics.Display;
 using Windows.Storage;
 using Windows.UI;
 using Windows.UI.Core;
@@ -74,7 +75,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         InkToolbarToolButton activeTool;
         bool inkCleared = false;
 
-        const float dipsPerMm = 96 / 25.4f;
+        float dipsPerMm;
 
         private Symbol TouchWriting = (Symbol)0xED5F;
         private Symbol Undo = (Symbol)0xE7A7;
@@ -105,6 +106,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             activeTool = ballpointPen;
 
             customToolbar.ActiveTool = null;
+
+            //var displayInformation = DisplayInformation.GetForCurrentView();
+            //float dpi = displayInformation.LogicalDpi;
+            //dipsPerMm = dpi / 25.4f;
         }
 
         #region Event Handlers
@@ -361,6 +366,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             if (!string.IsNullOrEmpty(responseJson.Text))
             {
+                //float dpi = args.DrawingSession.Dpi;
+                //dipsPerMm = dpi / 25.4f;
+
+                dipsPerMm = 96 / 25.4f;
+
                 foreach (var recoUnit in inkResponse.RecognitionUnits)
                 {
                     string category = recoUnit.category;
@@ -596,13 +606,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             if (recoUnit.points.Count > 0)
             {
-                // Center point of polygon
-                float floatX = (float)recoUnit.center.x;
-                float floatY = (float)recoUnit.center.y;
-                var centerPoint = new Vector2(floatX / dipsPerMm, floatY / dipsPerMm);
-
                 // Create new list of points for polygon to be drawn
-                var pointList = new List<Vector2>();
+                var pointsList = new List<Vector2>();
                 foreach (var inkPoint in recoUnit.points)
                 {
                     float x = (float)inkPoint.x;
@@ -610,10 +615,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                     var point = new Vector2(x * dipsPerMm, y * dipsPerMm);
 
-                    pointList.Add(point);
+                    pointsList.Add(point);
                 }
 
-                var points = pointList.ToArray();
+                // Create shape from list of points
+                var points = pointsList.ToArray();
                 var shape = CanvasGeometry.CreatePolygon(args.DrawingSession, points);
 
                 // Color of polygon
@@ -622,9 +628,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 // Stroke thickness
                 float strokeWidth = GetStrokeWidth(recoUnit);
 
-                args.DrawingSession.DrawGeometry(shape, centerPoint, color, strokeWidth);
+                args.DrawingSession.DrawGeometry(shape, color, strokeWidth);
             }
-
         }
         #endregion
 
