@@ -33,34 +33,58 @@
 // 
 
 using Microsoft.Toolkit.Uwp.UI.Controls;
+using ServiceHelpers;
+using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     public sealed partial class FormFiller : Page
     {
+        string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
+        string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
+        const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
+
+        private Symbol TouchWriting = (Symbol)0xED5F;
+        private Symbol Undo = (Symbol)0xE7A7;
+        private Symbol Redo = (Symbol)0xE7A6;
+        private Symbol ClearAll = (Symbol)0xE74D;
+
+        InkCanvas currentCanvas;
+
         public FormFiller()
         {
             this.InitializeComponent();
         }
 
-        private void ExpandAllButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
         {
-            var children = stack.Children;
-            foreach (var child in stack.Children)
+            expandAllButton.Visibility = Visibility.Collapsed;
+            collapseAllButton.Visibility = Visibility.Visible;
+
+            foreach (var child in formFields.Children)
             {
                 var element = child as Expander;
                 element.IsExpanded = true;
             }
         }
 
-        private void CollapseAllButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var child in stack.Children)
+            collapseAllButton.Visibility = Visibility.Collapsed;
+            expandAllButton.Visibility = Visibility.Visible;
+
+            foreach (var child in formFields.Children)
             {
                 var element = child as Expander;
                 element.IsExpanded = false;
             }
+        }
+
+        private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            currentCanvas = sender as InkCanvas;
         }
     }
 }

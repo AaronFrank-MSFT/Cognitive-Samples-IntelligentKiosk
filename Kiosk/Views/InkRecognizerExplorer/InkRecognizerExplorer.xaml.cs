@@ -49,7 +49,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private void NavView_Loaded(object sender, RoutedEventArgs e)
         {
             dualFrame.SourcePageType = typeof(DualCanvas);
-            //formFrame.SourcePageType = typeof(FormFiller);
+            formFrame.SourcePageType = typeof(FormFiller);
 
             navView.SelectedItem = navView.MenuItems[0];
         }
@@ -61,12 +61,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             switch (item.Tag)
             {
                 case "dualMode":
-                    //formFrame.Visibility = Visibility.Collapsed;
+                    formFrame.Visibility = Visibility.Collapsed;
                     dualFrame.Visibility = Visibility.Visible;
                     break;
                 case "formMode":
                     dualFrame.Visibility = Visibility.Collapsed;
-                    //formFrame.Visibility = Visibility.Visible;
+                    formFrame.Visibility = Visibility.Visible;
                     break;
             }
         }

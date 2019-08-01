@@ -48,8 +48,8 @@ namespace ServiceHelpers
         string inkRecognitionUrl;
         HttpClient httpClient;
 
-        public IDictionary<uint, InkStroke> StrokeMap { get; set; }
-        public string LanguageCode { get; set; }
+        private IDictionary<uint, InkStroke> StrokeMap { get; set; }
+        private string LanguageCode { get; set; }
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
@@ -62,9 +62,22 @@ namespace ServiceHelpers
             LanguageCode = "en-US";
         }
 
-        public void AddStroke(InkStroke stroke)
+        public void AddStrokes(IReadOnlyList<InkStroke> strokes)
         {
-            StrokeMap[stroke.Id] = stroke;
+            foreach (var stroke in strokes)
+            {
+                StrokeMap[stroke.Id] = stroke;
+            }
+        }
+
+        public void ClearStrokes()
+        {
+            StrokeMap.Clear();
+        }
+
+        public void SetLanguage(string languageCode)
+        {
+            LanguageCode = languageCode;
         }
 
         public JsonObject ConvertInkToJson()

@@ -106,10 +106,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             activeTool = ballpointPen;
 
             customToolbar.ActiveTool = null;
-
-            //var displayInformation = DisplayInformation.GetForCurrentView();
-            //float dpi = displayInformation.LogicalDpi;
-            //dipsPerMm = dpi / 25.4f;
         }
 
         #region Event Handlers
@@ -242,7 +238,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 var selectedItem = dropdown.SelectedItem as ComboBoxItem;
                 string languageCode = selectedItem.Name.Insert(2, "-");
 
-                inkRecognizer.LanguageCode = languageCode;
+                inkRecognizer.SetLanguage(languageCode);
             }
         }
 
@@ -251,23 +247,19 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
             if (strokes.Count > 0)
             {
+                // Disable use of toolbar during recognition and rendering
+                ToggleInkToolbar();
+                ToggleProgressRing();
+
                 // Clear result canvas and viewable JSON before recognition and rendering of results
                 ViewCanvasButton_Click(null, null);
                 ClearJson();
 
                 // Convert Ink to JSON for request and display it
-                inkRecognizer.StrokeMap.Clear();
-                foreach (var stroke in strokes)
-                {
-                    inkRecognizer.AddStroke(stroke);
-                }
-
+                inkRecognizer.ClearStrokes();
+                inkRecognizer.AddStrokes(strokes);
                 JsonObject json = inkRecognizer.ConvertInkToJson();
                 requestJson.Text = FormatJson(json.Stringify());
-
-                // Disable use of toolbar during recognition and rendering
-                ToggleInkToolbar();
-                ToggleProgressRing();
 
                 // Recognize Ink from JSON and display response
                 var response = await inkRecognizer.RecognizeAsync(json);
@@ -366,6 +358,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             if (!string.IsNullOrEmpty(responseJson.Text))
             {
+                // If needed to use the device's DPI, and example is below. If you use a different DPI ensure that it is the same number used in inkRecognizer.ConvertInkToJson().
                 //float dpi = args.DrawingSession.Dpi;
                 //dipsPerMm = dpi / 25.4f;
 

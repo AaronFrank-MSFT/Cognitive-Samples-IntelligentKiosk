@@ -29,11 +29,11 @@
         <NavigationView Grid.Row="1" x:Name="navView" Background="{Binding NavigationViewBackground}" PaneDisplayMode="Top" IsSettingsVisible="False" IsBackButtonVisible="Collapsed" Loaded="NavView_Loaded" ItemInvoked="NavView_ItemInvoked" Margin="12,10,12,0">
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Dual Canvas" Tag="dualMode" FontSize="24"/>
-                <!--<NavigationViewItem Content="Form Filler" Tag="formMode" FontSize="24"/>-->
+                <NavigationViewItem Content="Form Filler" Tag="formMode" FontSize="24"/>
             </NavigationView.MenuItems>
         </NavigationView>
 
         <Frame Grid.Row="2" x:Name="dualFrame"/>
-        <!--<Frame Grid.Row="2" x:Name="formFrame" Visibility="Collapsed"/>-->
+        <Frame Grid.Row="2" x:Name="formFrame" Visibility="Collapsed"/>
     </Grid>
 </Page>
