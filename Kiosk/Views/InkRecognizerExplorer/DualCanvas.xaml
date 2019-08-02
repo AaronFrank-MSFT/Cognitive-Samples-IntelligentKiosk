@@ -50,7 +50,7 @@
 
                             <!-- To keep styling of custom buttons the same, they are placed in a non-functional ink toolbar -->
                             <!-- If custom toolbar buttons are place in the same ink toolbar their position in the toolbar cannot be changed -->
-                            <InkToolbar x:Name="customToolbar" InitialControls="None" ActiveToolChanged="CustomToolbar_ActiveToolChanged" RequestedTheme="Light" >
+                            <StackPanel Orientation="Horizontal" x:Name="customToolbar" RequestedTheme="Light" >
                                 <InkToolbarCustomToolButton x:Name="undoButton" Click="UndoButton_Click" ToolTipService.ToolTip="Undo">
                                     <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
                                 </InkToolbarCustomToolButton>
@@ -65,7 +65,7 @@
                                 <!--<InkToolbarCustomToolButton x:Name="saveButton" Click="SaveButton_Click" ToolTipService.ToolTip="Save">
                                     <SymbolIcon Symbol="{x:Bind Path=Save}"/>
                                 </InkToolbarCustomToolButton>-->
-                            </InkToolbar>
+                            </StackPanel>
                         </StackPanel>
                     </Viewbox>
 

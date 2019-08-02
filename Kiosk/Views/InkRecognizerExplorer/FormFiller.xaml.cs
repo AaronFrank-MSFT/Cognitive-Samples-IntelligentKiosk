@@ -32,8 +32,8 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
+using IntelligentKioskSample.Models.InkRecognizerExplorer;
 using Microsoft.Toolkit.Uwp.UI.Controls;
-using ServiceHelpers;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -46,7 +46,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
+        ServiceHelpers.InkRecognizer inkRecognizer;
+        InkResponse inkResponse;
+
         private Symbol TouchWriting = (Symbol)0xED5F;
+        private Symbol Accept = (Symbol)0xE8FB;
         private Symbol Undo = (Symbol)0xE7A7;
         private Symbol Redo = (Symbol)0xE7A6;
         private Symbol ClearAll = (Symbol)0xE74D;
@@ -56,6 +60,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         public FormFiller()
         {
             this.InitializeComponent();
+
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
         }
 
         private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
@@ -85,6 +91,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
         {
             currentCanvas = sender as InkCanvas;
+        }
+
+        private void InkToolbarCustomToolButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
         }
     }
 }

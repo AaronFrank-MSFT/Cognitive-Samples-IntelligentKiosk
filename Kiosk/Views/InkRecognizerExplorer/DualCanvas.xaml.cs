@@ -104,8 +104,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             redoStrokes = new Stack<InkStroke>();
             clearedStrokes = new List<InkStroke>();
             activeTool = ballpointPen;
-
-            customToolbar.ActiveTool = null;
         }
 
         #region Event Handlers
@@ -153,14 +151,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             activeTool = inkToolbar.ActiveTool;
         }
 
-        private void CustomToolbar_ActiveToolChanged(InkToolbar sender, object args)
-        {
-            customToolbar.ActiveTool.IsChecked = false;
-        }
-
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
-            undoButton.IsChecked = false;
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
 
             if (inkCleared)
             {
@@ -193,6 +187,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
             redoButton.IsChecked = false;
 
             if (redoStrokes.Count > 0)
@@ -205,6 +202,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
             clearButton.IsChecked = false;
 
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
@@ -756,17 +756,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void ToggleInkToolbar()
         {
-            if (inkToolbar.IsEnabled && customToolbar.IsEnabled)
+            if (inkToolbar.IsEnabled)
             {
                 inkToolbar.IsEnabled = false;
-                customToolbar.IsEnabled = false;
                 inkCanvas.InkPresenter.IsInputEnabled = false;
+
+                foreach (var child in customToolbar.Children)
+                {
+                    var button = child as InkToolbarCustomToolButton;
+                    button.IsEnabled = false;
+                }
             }
             else
             {
                 inkToolbar.IsEnabled = true;
-                customToolbar.IsEnabled = true;
                 inkCanvas.InkPresenter.IsInputEnabled = true;
+
+                foreach (var child in customToolbar.Children)
+                {
+                    var button = child as InkToolbarCustomToolButton;
+                    button.IsEnabled = true;
+                }
             }
         }
 

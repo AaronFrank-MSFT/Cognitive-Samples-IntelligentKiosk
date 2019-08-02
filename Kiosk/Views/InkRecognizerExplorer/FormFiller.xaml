@@ -22,7 +22,7 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="12*"/>
+                    <RowDefinition Height="13*"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -32,30 +32,14 @@
                     </Viewbox>
 
                     <Viewbox HorizontalAlignment="Right" VerticalAlignment="Stretch">
-                        <StackPanel Orientation="Horizontal">
-                            <InkToolbar InitialControls="None" Background="LightGray" TargetInkCanvas="{x:Bind Path=dateCanvas}">
-                                <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
-                                <InkToolbarPencilButton x:Name="pencil"/>
-                                <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
-                                <InkToolbarCustomToggleButton x:Name="touchButton" ToolTipService.ToolTip="Touch Writing">
-                                    <SymbolIcon Symbol="{x:Bind Path=TouchWriting}"/>
-                                </InkToolbarCustomToggleButton>
-                            </InkToolbar>
-
-                            <ComboBox x:Name="languageDropdown" SelectedIndex="3" Height="40" Width="175" RequestedTheme="Light" HorizontalAlignment="Right" Margin="5,0,0,0">
-                                <ComboBoxItem Name="zhCN" Content="Chinese (Simplified)"/>
-                                <ComboBoxItem Name="zhTW" Content="Chinese (Traditional)"/>
-                                <ComboBoxItem Name="enGB" Content="English (UK)"/>
-                                <ComboBoxItem Name="enUS" Content="English (US)"/>
-                                <ComboBoxItem Name="frFR" Content="French"/>
-                                <ComboBoxItem Name="deDE" Content="German"/>
-                                <ComboBoxItem Name="itIT" Content="Italian"/>
-                                <ComboBoxItem Name="jaJP" Content="Japanese"/>
-                                <ComboBoxItem Name="koKR" Content="Korean"/>
-                                <ComboBoxItem Name="ptPT" Content="Portuguese"/>
-                                <ComboBoxItem Name="esES" Content="Spanish"/>
-                            </ComboBox>
-                        </StackPanel>
+                        <InkToolbar InitialControls="None" Background="LightGray" TargetInkCanvas="{x:Bind Path=dateCanvas}">
+                            <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
+                            <InkToolbarPencilButton x:Name="pencil"/>
+                            <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
+                            <InkToolbarCustomToggleButton x:Name="touchButton" ToolTipService.ToolTip="Touch Writing">
+                                <SymbolIcon Symbol="{x:Bind Path=TouchWriting}"/>
+                            </InkToolbarCustomToggleButton>
+                        </InkToolbar>
                     </Viewbox>
                 </Grid>
 
@@ -76,17 +60,22 @@
                                 <Grid Grid.Row="0" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,5,38,0">
                                     <InkCanvas x:Name="dateCanvas" PointerEntered="InkCanvas_PointerEntered"/>
 
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0">
-                                        <InkToolbarCustomToolButton x:Name="undoButton0" ToolTipService.ToolTip="Undo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="redoButton0" ToolTipService.ToolTip="Redo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="clearButton0" ToolTipService.ToolTip="Clear All">
-                                            <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                        </InkToolbarCustomToolButton>
-                                    </StackPanel>
+                                    <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <StackPanel>
+                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept" Click="InkToolbarCustomToolButton_Click">
+                                                <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo" Click="InkToolbarCustomToolButton_Click">
+                                                <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo" Click="InkToolbarCustomToolButton_Click">
+                                                <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All" Click="InkToolbarCustomToolButton_Click">
+                                                <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                            </InkToolbarCustomToolButton>
+                                        </StackPanel>
+                                    </Viewbox>
                                 </Grid>
 
                                 <TextBlock Grid.Row="1" Text="Reco Result" Margin="38,10,38,10"/>
@@ -109,17 +98,23 @@
                                 <Grid Grid.Row="1" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,10,38,10">
                                     <InkCanvas x:Name="timeCanvas"/>
 
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0">
-                                        <InkToolbarCustomToolButton x:Name="undoButton1" ToolTipService.ToolTip="Undo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="redoButton1" ToolTipService.ToolTip="Redo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="clearButton1" ToolTipService.ToolTip="Clear All">
-                                            <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                        </InkToolbarCustomToolButton>
-                                    </StackPanel>
+                                    <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <StackPanel>
+                                            <InkToolbarCustomToolButton x:Name="accept" ToolTipService.ToolTip="accept">
+                                                <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton x:Name="undoButton1" ToolTipService.ToolTip="Undo">
+                                                <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton x:Name="redoButton1" ToolTipService.ToolTip="Redo">
+                                                <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                            </InkToolbarCustomToolButton>
+                                            <InkToolbarCustomToolButton x:Name="clearButton1" ToolTipService.ToolTip="Clear All">
+                                                <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                            </InkToolbarCustomToolButton>
+                                        </StackPanel>
+                                    </Viewbox>
+
                                 </Grid>
                             </Grid>
                         </controls:Expander>
@@ -187,7 +182,7 @@
                         </controls:Expander>
                     </StackPanel>
                 </ScrollViewer>
-                
+
                 <Viewbox Grid.Row="2" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,5,5,5">
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="expandAllButton" Visibility="Collapsed" Click="ExpandAllButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
