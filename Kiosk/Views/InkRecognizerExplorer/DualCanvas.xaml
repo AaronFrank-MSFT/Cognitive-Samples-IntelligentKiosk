@@ -150,18 +150,18 @@
                             </Grid>
                         </PivotItem>
 
-                        <PivotItem Header="Request JSON" Margin="10,10,10,0" VerticalAlignment="Stretch">
-                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,10">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <TextBlock x:Name="requestJson" RequestedTheme="Dark" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
-                                </ScrollViewer>
-                            </Border>
-                        </PivotItem>
-
                         <PivotItem Header="Response JSON" Margin="10,10,10,0">
                             <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,10">
                                 <ScrollViewer>
                                     <TextBlock x:Name="responseJson" RequestedTheme="Dark" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                                </ScrollViewer>
+                            </Border>
+                        </PivotItem>
+
+                        <PivotItem Header="Request JSON" Margin="10,10,10,0" VerticalAlignment="Stretch">
+                            <Border BorderThickness="2,2,2,2" BorderBrush="Gray" Background="Black" Padding="10,0,10,10">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock x:Name="requestJson" RequestedTheme="Dark" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 </ScrollViewer>
                             </Border>
                         </PivotItem>
@@ -170,7 +170,7 @@
                     <Viewbox Grid.Column="1" HorizontalAlignment="Right" Margin="0,5,10,0">
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="viewJsonButton" Click="ViewJsonButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
-                                <TextBlock Text="View JSON" FontWeight="SemiBold"/>
+                                <TextBlock Text="View Data" FontWeight="SemiBold"/>
                             </Button>
                             <Button x:Name="viewCanvasButton" Visibility="Collapsed" Click="ViewCanvasButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
                                 <TextBlock Text="View Canvas" FontWeight="SemiBold"/>

@@ -32,7 +32,7 @@
                     </Viewbox>
 
                     <Viewbox HorizontalAlignment="Right" VerticalAlignment="Stretch">
-                        <InkToolbar InitialControls="None" Background="LightGray" TargetInkCanvas="{x:Bind Path=dateCanvas}">
+                        <InkToolbar x:Name="inkToolbar" InitialControls="None" Background="LightGray">
                             <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
                             <InkToolbarPencilButton x:Name="pencil"/>
                             <InkToolbarEraserButton x:Name="eraser" IsClearAllVisible="False"/>
@@ -46,9 +46,9 @@
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,10,20,0">
                     <StackPanel x:Name="formFields" RequestedTheme="Light">
-                        <controls:Expander Header="Date of Accident" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,10,10,0">
+                        <controls:Expander Name="date" Header="Date of Accident" PointerEntered="InkCanvas_PointerEntered" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,10,10,0">
                             <controls:Expander.ContentOverlay>
-                                <TextBlock Text="Reco Result" Margin="38,5,0,10"/>
+                                <TextBlock x:Name="dateResultCollapsed" Text="*Field Required*" Margin="38,5,0,10"/>
                             </controls:Expander.ContentOverlay>
 
                             <Grid>
@@ -58,11 +58,11 @@
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,5,38,0">
-                                    <InkCanvas x:Name="dateCanvas" PointerEntered="InkCanvas_PointerEntered"/>
+                                    <InkCanvas x:Name="dateCanvas"/>
 
                                     <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
                                         <StackPanel>
-                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept" Click="InkToolbarCustomToolButton_Click">
+                                            <InkToolbarCustomToolButton Name="dateAccept" ToolTipService.ToolTip="Accept" Click="AcceptButton_Click">
                                                 <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
                                             </InkToolbarCustomToolButton>
                                             <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo" Click="InkToolbarCustomToolButton_Click">
@@ -78,24 +78,22 @@
                                     </Viewbox>
                                 </Grid>
 
-                                <TextBlock Grid.Row="1" Text="Reco Result" Margin="38,10,38,10"/>
+                                <TextBlock Grid.Row="1" x:Name="dateResultExpanded" Margin="38,10,38,10"/>
                             </Grid>
                         </controls:Expander>
 
-                        <controls:Expander Header="Time of Accident" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,20,10,0">
+                        <controls:Expander Name="time" Header="Time of Accident" PointerEntered="InkCanvas_PointerEntered" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,20,10,0">
                             <controls:Expander.ContentOverlay>
-                                <TextBlock Text="Reco Result" Margin="38,5,0,10"/>
+                                <TextBlock x:Name="timeResultCollapsed" Text="*Field Required*" Margin="38,5,0,10"/>
                             </controls:Expander.ContentOverlay>
 
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
                                     <RowDefinition Height="3*"/>
+                                    <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="Reco Result" Margin="38,5,38,0"/>
-
-                                <Grid Grid.Row="1" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,10,38,10">
+                                
+                                <Grid Grid.Row="0" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,5,38,0">
                                     <InkCanvas x:Name="timeCanvas"/>
 
                                     <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -114,70 +112,9 @@
                                             </InkToolbarCustomToolButton>
                                         </StackPanel>
                                     </Viewbox>
-
                                 </Grid>
-                            </Grid>
-                        </controls:Expander>
 
-                        <controls:Expander Header="Location of Accident" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,20,10,0">
-                            <controls:Expander.ContentOverlay>
-                                <TextBlock Text="Reco Result" Margin="38,5,0,10"/>
-                            </controls:Expander.ContentOverlay>
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="3*"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="Reco Result" Margin="38,5,38,0"/>
-
-                                <Grid Grid.Row="1" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,10,38,10">
-                                    <InkCanvas x:Name="locationCanvas"/>
-
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0">
-                                        <InkToolbarCustomToolButton x:Name="undoButton2" ToolTipService.ToolTip="Undo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="redoButton2" ToolTipService.ToolTip="Redo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="clearButton2" ToolTipService.ToolTip="Clear All">
-                                            <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                        </InkToolbarCustomToolButton>
-                                    </StackPanel>
-                                </Grid>
-                            </Grid>
-                        </controls:Expander>
-
-                        <controls:Expander Header="Driver's License Number" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,20,10,0">
-                            <controls:Expander.ContentOverlay>
-                                <TextBlock Text="Reco Result" Margin="38,5,0,10"/>
-                            </controls:Expander.ContentOverlay>
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="3*"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="Reco Result" Margin="38,5,38,0"/>
-
-                                <Grid Grid.Row="1" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,10,38,10">
-                                    <InkCanvas x:Name="licenseNumberCanvas"/>
-
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0">
-                                        <InkToolbarCustomToolButton x:Name="undoButton3" ToolTipService.ToolTip="Undo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="redoButton3" ToolTipService.ToolTip="Redo">
-                                            <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                        </InkToolbarCustomToolButton>
-                                        <InkToolbarCustomToolButton x:Name="clearButton3" ToolTipService.ToolTip="Clear All">
-                                            <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                        </InkToolbarCustomToolButton>
-                                    </StackPanel>
-                                </Grid>
+                                <TextBlock x:Name="timeResultExpanded" Grid.Row="1" Margin="38,10,38,10"/>
                             </Grid>
                         </controls:Expander>
                     </StackPanel>

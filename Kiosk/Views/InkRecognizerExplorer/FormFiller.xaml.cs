@@ -34,6 +34,14 @@
 
 using IntelligentKioskSample.Models.InkRecognizerExplorer;
 using Microsoft.Toolkit.Uwp.UI.Controls;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using Windows.Data.Json;
+using Windows.UI.Core;
+using Windows.UI.Input.Inking;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -46,22 +54,101 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
+        private readonly DispatcherTimer dispatcherTimer;
+
         ServiceHelpers.InkRecognizer inkRecognizer;
         InkResponse inkResponse;
+        InkCanvas currentCanvas;
+
+        string[] canvasNames = new string[]
+        {
+            "dateCanvas",
+            "timeCanvas"
+        };
 
         private Symbol TouchWriting = (Symbol)0xED5F;
         private Symbol Accept = (Symbol)0xE8FB;
         private Symbol Undo = (Symbol)0xE7A7;
         private Symbol Redo = (Symbol)0xE7A6;
         private Symbol ClearAll = (Symbol)0xE74D;
-
-        InkCanvas currentCanvas;
-
+        
         public FormFiller()
         {
             this.InitializeComponent();
 
+            foreach (string name in canvasNames)
+            {
+                var canvas = this.FindName(name) as InkCanvas;
+                canvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
+                canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
+                canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
+                canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
+            }
+
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            dispatcherTimer = new DispatcherTimer();
+            dispatcherTimer.Tick += DispatcherTimer_Tick;
+            dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
+        }
+
+        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
+        {
+            dispatcherTimer.Stop();
+        }
+
+        private void InkPresenter_StrokeInputEnded(InkStrokeInput sender, PointerEventArgs args)
+        {
+            dispatcherTimer.Start();
+        }
+
+        private void InkPresenter_StrokeErased(InkPresenter sender, InkStrokesErasedEventArgs args)
+        {
+            dispatcherTimer.Start();
+        }
+
+        private async void DispatcherTimer_Tick(object sender, object e)
+        {
+            dispatcherTimer.Stop();
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
+            inkRecognizer.ClearStrokes();
+            inkRecognizer.AddStrokes(strokes);
+            JsonObject json = inkRecognizer.ConvertInkToJson();
+
+            // Recognize Ink from JSON and display response
+            var response = await inkRecognizer.RecognizeAsync(json);
+            string responseString = await response.Content.ReadAsStringAsync();
+            inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                foreach (var recoUnit in inkResponse.RecognitionUnits)
+                {
+                    if (recoUnit.category == "line")
+                    {
+                        var resultExpanded = this.FindName($"{prefix}ResultExpanded") as TextBlock;
+                        resultExpanded.Text = recoUnit.recognizedText;
+
+                        var resultCollapsed = this.FindName($"{prefix}ResultCollapsed") as TextBlock;
+                        resultCollapsed.Text = recoUnit.recognizedText;
+                    }
+                }
+            }
+            else
+            {
+                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                }
+                else
+                {
+                    await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                }
+            }
         }
 
         private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
@@ -90,7 +177,18 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
         {
-            currentCanvas = sender as InkCanvas;
+            var expander = sender as Expander;
+            string prefix = expander.Name;
+            var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+
+            inkToolbar.TargetInkCanvas = canvas;
+            currentCanvas = canvas;
+        }
+
+        private void AcceptButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
         }
 
         private void InkToolbarCustomToolButton_Click(object sender, RoutedEventArgs e)
@@ -98,5 +196,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
         }
+
     }
 }
