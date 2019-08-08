@@ -22,8 +22,7 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="13*"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="15*"/>
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" Margin="20,10,20,0">
@@ -43,93 +42,284 @@
                     </Viewbox>
                 </Grid>
 
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,20,20,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="0.2*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="2*"/>
+                        </Grid.RowDefinitions>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,10,20,0">
-                    <StackPanel x:Name="formFields" RequestedTheme="Light">
-                        <controls:Expander Name="date" Header="Date of Accident" PointerEntered="InkCanvas_PointerEntered" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,10,10,0">
-                            <controls:Expander.ContentOverlay>
-                                <TextBlock x:Name="dateResultCollapsed" Text="*Field Required*" Margin="38,5,0,10"/>
-                            </controls:Expander.ContentOverlay>
+                        <TextBlock Grid.Row="0" Text="State Vehicle Information" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <Border Grid.Row="1" BorderThickness="5,5,5,4" BorderBrush="Black"> 
+                            <Grid x:Name="vehicleFields" RequestedTheme="Light">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="3*"/>
                                     <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="0" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,5,38,0">
-                                    <InkCanvas x:Name="dateCanvas"/>
+                                <Border Grid.Column="0" Grid.Row="0" BorderThickness="0,0,3,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Car Year:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Grid.Row="0" BorderThickness="0,0,0,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Car Make:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
 
-                                    <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <StackPanel>
-                                            <InkToolbarCustomToolButton Name="dateAccept" ToolTipService.ToolTip="Accept" Click="AcceptButton_Click">
-                                                <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo" Click="InkToolbarCustomToolButton_Click">
-                                                <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo" Click="InkToolbarCustomToolButton_Click">
-                                                <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All" Click="InkToolbarCustomToolButton_Click">
-                                                <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                            </InkToolbarCustomToolButton>
-                                        </StackPanel>
-                                    </Viewbox>
-                                </Grid>
+                                <StackPanel Grid.ColumnSpan="2" Grid.Row="1" BorderBrush="Black" BorderThickness="0,0,0,2">
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas x:Name="dateCanvas"/>
 
-                                <TextBlock Grid.Row="1" x:Name="dateResultExpanded" Margin="38,10,38,10"/>
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas x:Name="Canvas"/>
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Grid.Column="0" Grid.Row="2" BorderThickness="0,0,3,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Car Model:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Grid.Row="2" BorderThickness="0,0,0,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Mileage:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Grid.ColumnSpan="2" Grid.Row="3" BorderBrush="Black" BorderThickness="0,0,0,2">
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas/>
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas/>
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Grid.ColumnSpan="2" Grid.Row="4">
+                                    <StackPanel>
+                                        <TextBlock Text="License Plate Number:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.ColumnSpan="2" Grid.Row="5" BorderBrush="Black" BorderThickness="0,2,0,0">
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas/>
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+                                </Border>
                             </Grid>
-                        </controls:Expander>
+                        </Border>
 
-                        <controls:Expander Name="time" Header="Time of Accident" PointerEntered="InkCanvas_PointerEntered" IsExpanded="True" HorizontalContentAlignment="Stretch" Margin="10,20,10,0">
-                            <controls:Expander.ContentOverlay>
-                                <TextBlock x:Name="timeResultCollapsed" Text="*Field Required*" Margin="38,5,0,10"/>
-                            </controls:Expander.ContentOverlay>
+                        <TextBlock Grid.Row="3" Text="Accident Information" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <Border Grid.Row="4" BorderThickness="5,5,5,3" BorderBrush="Black">
+                            <Grid x:Name="accidentFields" RequestedTheme="Light">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="3*"/>
                                     <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="4*"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                
-                                <Grid Grid.Row="0" Height="150" Background="LightGray" BorderBrush="Black" BorderThickness="1" Margin="38,5,38,0">
-                                    <InkCanvas x:Name="timeCanvas"/>
 
-                                    <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <StackPanel>
-                                            <InkToolbarCustomToolButton x:Name="accept" ToolTipService.ToolTip="accept">
-                                                <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton x:Name="undoButton1" ToolTipService.ToolTip="Undo">
-                                                <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton x:Name="redoButton1" ToolTipService.ToolTip="Redo">
-                                                <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
-                                            </InkToolbarCustomToolButton>
-                                            <InkToolbarCustomToolButton x:Name="clearButton1" ToolTipService.ToolTip="Clear All">
-                                                <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
-                                            </InkToolbarCustomToolButton>
-                                        </StackPanel>
-                                    </Viewbox>
-                                </Grid>
+                                <Border Grid.Column="0" Grid.Row="0" BorderThickness="0,0,3,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Date of Accident:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Grid.Row="0" BorderThickness="0,0,0,2" BorderBrush="Black">
+                                    <StackPanel>
+                                        <TextBlock Text="Time of Accident:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
 
-                                <TextBlock x:Name="timeResultExpanded" Grid.Row="1" Margin="38,10,38,10"/>
+                                <StackPanel Grid.ColumnSpan="2" Grid.Row="1" BorderBrush="Black" BorderThickness="0,0,0,2">
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas />
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept" >
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo" >
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo" >
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All" >
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas />
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Grid.ColumnSpan="2" Grid.Row="2">
+                                    <StackPanel>
+                                        <TextBlock Text="Describe Damage to Vehicle:" FontSize="20" FontWeight="SemiBold" TextDecorations="Underline" Margin="5"/>
+                                        <TextBlock Text="TEXT HERE" FontSize="24" Margin="5"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.ColumnSpan="2" Grid.Row="3" BorderBrush="Black" BorderThickness="0,3,0,0">
+                                    <Grid Height="150" Background="LightGray" Visibility="Collapsed" BorderBrush="Black" BorderThickness="1" Margin="10,5,10,5">
+                                        <InkCanvas/>
+
+                                        <Viewbox VerticalAlignment="Center" HorizontalAlignment="Right">
+                                            <StackPanel>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Accept">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Accept}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Undo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Undo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Redo">
+                                                    <SymbolIcon Symbol="{x:Bind Path=Redo}"/>
+                                                </InkToolbarCustomToolButton>
+                                                <InkToolbarCustomToolButton ToolTipService.ToolTip="Clear All">
+                                                    <SymbolIcon Symbol="{x:Bind Path=ClearAll}"/>
+                                                </InkToolbarCustomToolButton>
+                                            </StackPanel>
+                                        </Viewbox>
+                                    </Grid>
+                                </Border>
                             </Grid>
-                        </controls:Expander>
-                    </StackPanel>
+                        </Border>
+                    </Grid>
                 </ScrollViewer>
-
-                <Viewbox Grid.Row="2" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,5,5,5">
-                    <StackPanel Orientation="Horizontal">
-                        <Button x:Name="expandAllButton" Visibility="Collapsed" Click="ExpandAllButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
-                            <TextBlock Text="Expand All" FontWeight="SemiBold"/>
-                        </Button>
-                        <Button x:Name="collapseAllButton" Click="CollapseAllButton_Click" Width="100" RequestedTheme="Light" Background="LightGray">
-                            <TextBlock Text="Collapse All" FontWeight="SemiBold"/>
-                        </Button>
-                    </StackPanel>
-                </Viewbox>
             </Grid>
         </Grid>
     </Grid>

@@ -76,14 +76,14 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
 
-            foreach (string name in canvasNames)
-            {
-                var canvas = this.FindName(name) as InkCanvas;
-                canvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
-                canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
-                canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
-                canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
-            }
+            //foreach (string name in canvasNames)
+            //{
+            //    var canvas = this.FindName(name) as InkCanvas;
+            //    canvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
+            //    canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
+            //    canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
+            //    canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
+            //}
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
@@ -105,6 +105,19 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private void InkPresenter_StrokeErased(InkPresenter sender, InkStrokesErasedEventArgs args)
         {
             dispatcherTimer.Start();
+
+            var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
+            if (strokes.Count > 0)
+            {
+                int index = currentCanvas.Name.IndexOf("Canvas");
+                string prefix = currentCanvas.Name.Substring(0, index);
+
+                var resultExpanded = this.FindName($"{prefix}ResultExpanded") as TextBlock;
+                resultExpanded.Text = string.Empty;
+
+                var resultCollapsed = this.FindName($"{prefix}ResultCollapsed") as TextBlock;
+                resultCollapsed.Text = "*Field Required*";
+            }
         }
 
         private async void DispatcherTimer_Tick(object sender, object e)
@@ -151,51 +164,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        private void ExpandAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            expandAllButton.Visibility = Visibility.Collapsed;
-            collapseAllButton.Visibility = Visibility.Visible;
+        //private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
+        //{
+        //    var expander = sender as Expander;
+        //    string prefix = expander.Name;
+        //    var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
 
-            foreach (var child in formFields.Children)
-            {
-                var element = child as Expander;
-                element.IsExpanded = true;
-            }
-        }
+        //    inkToolbar.TargetInkCanvas = canvas;
+        //    currentCanvas = canvas;
+        //}
 
-        private void CollapseAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            collapseAllButton.Visibility = Visibility.Collapsed;
-            expandAllButton.Visibility = Visibility.Visible;
+        //private void AcceptButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var button = sender as InkToolbarCustomToolButton;
+        //    button.IsChecked = false;
+        //}
 
-            foreach (var child in formFields.Children)
-            {
-                var element = child as Expander;
-                element.IsExpanded = false;
-            }
-        }
-
-        private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
-        {
-            var expander = sender as Expander;
-            string prefix = expander.Name;
-            var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
-
-            inkToolbar.TargetInkCanvas = canvas;
-            currentCanvas = canvas;
-        }
-
-        private void AcceptButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-        }
-
-        private void InkToolbarCustomToolButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-        }
+        //private void InkToolbarCustomToolButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var button = sender as InkToolbarCustomToolButton;
+        //    button.IsChecked = false;
+        //}
 
     }
 }
