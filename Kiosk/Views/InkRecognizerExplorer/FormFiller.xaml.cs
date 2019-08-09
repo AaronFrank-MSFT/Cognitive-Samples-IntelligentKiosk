@@ -39,12 +39,14 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Windows.Data.Json;
+using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
@@ -60,10 +62,16 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         InkResponse inkResponse;
         InkCanvas currentCanvas;
 
-        string[] canvasNames = new string[]
+        private string[] prefixes = new string[]
         {
-            "dateCanvas",
-            "timeCanvas"
+            "year",
+            "make",
+            "model",
+            "mileage",
+            "license",
+            "date",
+            "time",
+            "damage"
         };
 
         private Symbol TouchWriting = (Symbol)0xED5F;
@@ -76,14 +84,14 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
 
-            //foreach (string name in canvasNames)
-            //{
-            //    var canvas = this.FindName(name) as InkCanvas;
-            //    canvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
-            //    canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
-            //    canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
-            //    canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
-            //}
+            foreach (string prefix in prefixes)
+            {
+                var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+                canvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
+                canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
+                canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
+                canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
+            }
 
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
@@ -107,16 +115,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             dispatcherTimer.Start();
 
             var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
-            if (strokes.Count > 0)
+            if (strokes.Count == 0)
             {
                 int index = currentCanvas.Name.IndexOf("Canvas");
                 string prefix = currentCanvas.Name.Substring(0, index);
 
-                var resultExpanded = this.FindName($"{prefix}ResultExpanded") as TextBlock;
-                resultExpanded.Text = string.Empty;
-
-                var resultCollapsed = this.FindName($"{prefix}ResultCollapsed") as TextBlock;
-                resultCollapsed.Text = "*Field Required*";
+                var result = this.FindName($"{prefix}Result") as TextBlock;
+                result.Text = string.Empty;
             }
         }
 
@@ -139,15 +144,14 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
+                var result = this.FindName($"{prefix}Result") as TextBlock;
+                result.Text = string.Empty;
+
                 foreach (var recoUnit in inkResponse.RecognitionUnits)
                 {
                     if (recoUnit.category == "line")
                     {
-                        var resultExpanded = this.FindName($"{prefix}ResultExpanded") as TextBlock;
-                        resultExpanded.Text = recoUnit.recognizedText;
-
-                        var resultCollapsed = this.FindName($"{prefix}ResultCollapsed") as TextBlock;
-                        resultCollapsed.Text = recoUnit.recognizedText;
+                        result.Text += $"{recoUnit.recognizedText} ";
                     }
                 }
             }
@@ -164,27 +168,145 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        //private void InkCanvas_PointerEntered(object sender, PointerRoutedEventArgs e)
-        //{
-        //    var expander = sender as Expander;
-        //    string prefix = expander.Name;
-        //    var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+        private void FormField_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            var formField = sender as Grid;
+            string prefix = formField.Name;
+            var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
 
-        //    inkToolbar.TargetInkCanvas = canvas;
-        //    currentCanvas = canvas;
-        //}
+            if (canvasGrid.Visibility == Visibility.Collapsed)
+            {
+                CollapseAllFormFields();
+                canvasGrid.Visibility = Visibility.Visible;
 
-        //private void AcceptButton_Click(object sender, RoutedEventArgs e)
-        //{
-        //    var button = sender as InkToolbarCustomToolButton;
-        //    button.IsChecked = false;
-        //}
+                if (formField.Tag.ToString() == "accepted")
+                {
+                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+                    formField.Tag = "pending";
+                }
+                else
+                {
+                    formField.BorderThickness = new Thickness(3);
+                }
 
-        //private void InkToolbarCustomToolButton_Click(object sender, RoutedEventArgs e)
-        //{
-        //    var button = sender as InkToolbarCustomToolButton;
-        //    button.IsChecked = false;
-        //}
+                var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+                inkToolbar.TargetInkCanvas = canvas;
+                currentCanvas = canvas;
+            }
+            else
+            {
+                formField.BorderThickness = new Thickness(0);
+                canvasGrid.Visibility = Visibility.Collapsed;
+            }
+        }
 
+        private void CollapseAllFormFields()
+        {
+            foreach (string prefix in prefixes)
+            {
+                var formField = this.FindName($"{prefix}") as Grid;
+                var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
+
+                canvasGrid.Visibility = Visibility.Collapsed;
+
+                if (formField.Tag.ToString() == "pending")
+                {
+                    formField.BorderThickness = new Thickness(0);
+                }
+            }
+        }
+
+        private void NavigateToNextField(string prefix)
+        {
+            for (int i = 0; i < prefixes.Length; i++)
+            {
+                if (prefixes[i] == prefix && i != (prefixes.Length - 1))
+                {
+                    string nextFieldPrefix = prefixes[i + 1];
+                    var nextFormField = this.FindName($"{nextFieldPrefix}") as Grid;
+
+                    if (nextFormField.Tag.ToString() == "pending")
+                    {
+                        ActivateFormField(nextFieldPrefix);
+                    }
+                    else if (nextFormField.Tag.ToString() == "accepted")
+                    {
+                        prefix = nextFieldPrefix;
+                    }
+                }
+                else if (prefixes[i] == prefix && i == (prefixes.Length - 1))
+                {
+                    var nextFormField = this.FindName($"{prefix}") as Grid;
+                    if (nextFormField.Tag.ToString() == "accepted")
+                    {
+                        foreach (string fieldPrefix in prefixes)
+                        {
+                            var formField = this.FindName($"{fieldPrefix}") as Grid;
+                            if (formField.Tag.ToString() == "pending")
+                            {
+                                ActivateFormField(fieldPrefix);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ActivateFormField(string prefix)
+        {
+            var formField = this.FindName($"{prefix}") as Grid;
+            var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
+            var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+
+            formField.BorderThickness = new Thickness(3);
+            canvasGrid.Visibility = Visibility.Visible;
+            inkToolbar.TargetInkCanvas = canvas;
+            currentCanvas = canvas;
+        }
+
+        private void AcceptButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var formField = this.FindName($"{prefix}") as Grid;
+
+            formField.BorderBrush = new SolidColorBrush(Colors.LightGreen);
+            formField.Tag = "accepted";
+            CollapseAllFormFields();
+            NavigateToNextField(prefix);
+        }
+
+        private void UndoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+        }
+
+        private void RedoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+        }
+
+        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+        }
     }
 }
