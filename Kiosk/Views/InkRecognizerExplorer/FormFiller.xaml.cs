@@ -211,9 +211,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 CollapseAllFormFields();
                 canvasGrid.Visibility = Visibility.Visible;
 
-                if (formField.Tag.ToString() != "accepted")
+                if (formField.Tag.ToString() == "pending")
                 {
-                    formField.BorderThickness = new Thickness(3);
+                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
                 }
 
                 var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
@@ -222,7 +222,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
             else
             {
-                formField.BorderThickness = new Thickness(0);
+                if (formField.Tag.ToString() == "pending")
+                {
+                    formField.BorderBrush = new SolidColorBrush(Colors.White);
+                }
+
                 canvasGrid.Visibility = Visibility.Collapsed;
             }
         }
@@ -377,7 +381,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                 if (formField.Tag.ToString() == "pending")
                 {
-                    formField.BorderThickness = new Thickness(0);
+                    formField.BorderBrush = new SolidColorBrush(Colors.White);
                 }
             }
         }
@@ -425,7 +429,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
             var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
 
-            formField.BorderThickness = new Thickness(3);
+            formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
             canvasGrid.Visibility = Visibility.Visible;
             inkToolbar.TargetInkCanvas = canvas;
             currentCanvas = canvas;
