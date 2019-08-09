@@ -32,10 +32,10 @@
 
                     <Viewbox HorizontalAlignment="Right" VerticalAlignment="Stretch">
                         <InkToolbar x:Name="inkToolbar" InitialControls="None" Background="LightGray">
-                            <InkToolbarBallpointPenButton/>
+                            <InkToolbarBallpointPenButton x:Name="ballpointPen"/>
                             <InkToolbarPencilButton/>
                             <InkToolbarEraserButton IsClearAllVisible="False"/>
-                            <InkToolbarCustomToggleButton x:Name="touchButton" ToolTipService.ToolTip="Touch Writing">
+                            <InkToolbarCustomToggleButton x:Name="touchButton" Click="TouchButton_Click" ToolTipService.ToolTip="Touch Writing">
                                 <SymbolIcon Symbol="{x:Bind Path=TouchWriting}"/>
                             </InkToolbarCustomToggleButton>
                         </InkToolbar>

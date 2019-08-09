@@ -89,12 +89,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
 
-            inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
-
-            // Register event handlers
-            inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
-            inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
-
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
@@ -104,9 +98,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             redoStrokes = new Stack<InkStroke>();
             clearedStrokes = new List<InkStroke>();
             activeTool = ballpointPen;
+
+            inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
+            inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
+            inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
         }
 
-        #region Event Handlers
+        #region Event Handlers - Page
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
@@ -130,27 +128,15 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             base.OnNavigatedTo(e);
         }
 
-        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
+        void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            ViewCanvasButton_Click(null, null);
-
-            clearedStrokes.Clear();
-            inkCleared = false;
-
-            activeTool = inkToolbar.ActiveTool;
+            // Dispose Win2D resources to avoid memory leak
+            this.resultCanvas.RemoveFromVisualTree();
+            this.resultCanvas = null;
         }
+        #endregion
 
-        private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
-        {
-            // When strokes are erased they are treated the same as an undo and are pushed onto a stack of strokes for the redo button
-            foreach (var stroke in args.Strokes)
-            {
-                redoStrokes.Push(stroke);
-            }
-
-            activeTool = inkToolbar.ActiveTool;
-        }
-
+        #region Event Handlers - Ink Toolbar
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as InkToolbarCustomToolButton;
@@ -190,8 +176,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
 
-            redoButton.IsChecked = false;
-
             if (redoStrokes.Count > 0)
             {
                 var stroke = redoStrokes.Pop();
@@ -204,8 +188,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
-
-            clearButton.IsChecked = false;
 
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
             foreach (var stroke in strokes)
@@ -228,6 +210,29 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             {
                 inkCanvas.InkPresenter.InputDeviceTypes &= ~CoreInputDeviceTypes.Touch;
             }
+        }
+        #endregion
+
+        #region Event Handlers - Ink Canvas
+        private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
+        {
+            ViewCanvasButton_Click(null, null);
+
+            clearedStrokes.Clear();
+            inkCleared = false;
+
+            activeTool = inkToolbar.ActiveTool;
+        }
+
+        private void InkPresenter_StrokesErased(InkPresenter sender, InkStrokesErasedEventArgs args)
+        {
+            // When strokes are erased they are treated the same as an undo and are pushed onto a stack of strokes for the redo button
+            foreach (var stroke in args.Strokes)
+            {
+                redoStrokes.Push(stroke);
+            }
+
+            activeTool = inkToolbar.ActiveTool;
         }
 
         private void LanguageDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -295,6 +300,59 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 ClearJson();
             }
         }
+        #endregion
+
+        #region Event Handlers - Result Canvas
+        private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        {
+            if (!string.IsNullOrEmpty(responseJson.Text))
+            {
+                // If needed to use the device's DPI, and example is below. If you use a different DPI ensure that it is the same number used in inkRecognizer.ConvertInkToJson().
+                //float dpi = args.DrawingSession.Dpi;
+                //dipsPerMm = dpi / 25.4f;
+
+                dipsPerMm = 96 / 25.4f;
+
+                foreach (var recoUnit in inkResponse.RecognitionUnits)
+                {
+                    string category = recoUnit.category;
+                    switch (category)
+                    {
+                        case "inkBullet":
+                        case "inkWord":
+                            AddText(recoUnit, sender, args);
+                            break;
+                        case "line":
+                            DrawText(recoUnit, sender, args);
+                            break;
+                        case "inkDrawing":
+                            string recognizedObject = recoUnit.recognizedObject;
+                            switch (recognizedObject)
+                            {
+                                case "circle":
+                                    DrawCircle(recoUnit, sender, args);
+                                    break;
+                                case "ellipse":
+                                    DrawEllipse(recoUnit, sender, args);
+                                    break;
+                                case "drawing":
+                                    DrawLine(recoUnit, sender, args);
+                                    break;
+                                default:
+                                    DrawPolygon(recoUnit, sender, args);
+                                    break;
+                            }
+                            break;
+                    }
+                }
+
+                recoText.Clear();
+            }
+            else
+            {
+                args.DrawingSession.Clear(Colors.White);
+            }
+        }
 
         private void ViewCanvasButton_Click(object sender, RoutedEventArgs e)
         {
@@ -352,64 +410,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                 CollapseChildren(node);
             }
-        }
-
-        private void ResultCanvas_Draw(CanvasControl sender, CanvasDrawEventArgs args)
-        {
-            if (!string.IsNullOrEmpty(responseJson.Text))
-            {
-                // If needed to use the device's DPI, and example is below. If you use a different DPI ensure that it is the same number used in inkRecognizer.ConvertInkToJson().
-                //float dpi = args.DrawingSession.Dpi;
-                //dipsPerMm = dpi / 25.4f;
-
-                dipsPerMm = 96 / 25.4f;
-
-                foreach (var recoUnit in inkResponse.RecognitionUnits)
-                {
-                    string category = recoUnit.category;
-                    switch (category)
-                    {
-                        case "inkBullet":
-                        case "inkWord":
-                            AddText(recoUnit, sender, args);
-                            break;
-                        case "line":
-                            DrawText(recoUnit, sender, args);
-                            break;
-                        case "inkDrawing":
-                            string recognizedObject = recoUnit.recognizedObject;
-                            switch (recognizedObject)
-                            {
-                                case "circle":
-                                    DrawCircle(recoUnit, sender, args);
-                                    break;
-                                case "ellipse":
-                                    DrawEllipse(recoUnit, sender, args);
-                                    break;
-                                case "drawing":
-                                    DrawLine(recoUnit, sender, args);
-                                    break;
-                                default:
-                                    DrawPolygon(recoUnit, sender, args);
-                                    break;
-                            }
-                            break;
-                    }
-                }
-
-                recoText.Clear();
-            }
-            else
-            {
-                args.DrawingSession.Clear(Colors.White);
-            }
-        }
-
-        void MainPage_Unloaded(object sender, RoutedEventArgs e)
-        {
-            // Dispose Win2D resources to avoid memory leak
-            this.resultCanvas.RemoveFromVisualTree();
-            this.resultCanvas = null;
         }
         #endregion
 

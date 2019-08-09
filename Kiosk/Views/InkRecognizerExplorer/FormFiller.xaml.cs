@@ -33,7 +33,6 @@
 // 
 
 using IntelligentKioskSample.Models.InkRecognizerExplorer;
-using Microsoft.Toolkit.Uwp.UI.Controls;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -62,6 +61,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         InkResponse inkResponse;
         InkCanvas currentCanvas;
 
+        Dictionary<string, Stack<InkStroke>> redoStacks;
+        Dictionary<string, List<InkStroke>> clearedStrokesLists;
+        InkToolbarToolButton activeTool;
+        bool inkCleared = false;
+
         private string[] prefixes = new string[]
         {
             "year",
@@ -84,6 +88,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
 
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            redoStacks = new Dictionary<string, Stack<InkStroke>>();
+            clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
+            activeTool = ballpointPen;
+
             foreach (string prefix in prefixes)
             {
                 var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
@@ -91,18 +101,35 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 canvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
                 canvas.InkPresenter.StrokeInput.StrokeEnded += InkPresenter_StrokeInputEnded;
                 canvas.InkPresenter.StrokesErased += InkPresenter_StrokeErased;
-            }
 
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+                redoStacks.Add(prefix, new Stack<InkStroke>());
+                clearedStrokesLists.Add(prefix, new List<InkStroke>());
+            }
 
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Tick += DispatcherTimer_Tick;
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
         }
 
+        #region Event Handlers - Canvas, Timer, Form Field
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
         {
             dispatcherTimer.Stop();
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var formField = this.FindName($"{prefix}") as Grid;
+            if (formField.Tag.ToString() == "accepted")
+            {
+                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+                formField.Tag = "pending";
+            }
+
+            clearedStrokesLists[prefix].Clear();
+            inkCleared = false;
+
+            activeTool = inkToolbar.ActiveTool;
         }
 
         private void InkPresenter_StrokeInputEnded(InkStrokeInput sender, PointerEventArgs args)
@@ -114,12 +141,17 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             dispatcherTimer.Start();
 
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            foreach (var stroke in args.Strokes)
+            {
+                redoStacks[prefix].Push(stroke);
+            }
+
             var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
             if (strokes.Count == 0)
             {
-                int index = currentCanvas.Name.IndexOf("Canvas");
-                string prefix = currentCanvas.Name.Substring(0, index);
-
                 var result = this.FindName($"{prefix}Result") as TextBlock;
                 result.Text = string.Empty;
             }
@@ -179,12 +211,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 CollapseAllFormFields();
                 canvasGrid.Visibility = Visibility.Visible;
 
-                if (formField.Tag.ToString() == "accepted")
-                {
-                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                    formField.Tag = "pending";
-                }
-                else
+                if (formField.Tag.ToString() != "accepted")
                 {
                     formField.BorderThickness = new Thickness(3);
                 }
@@ -199,7 +226,146 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 canvasGrid.Visibility = Visibility.Collapsed;
             }
         }
+        #endregion
 
+        #region Event Handlers - Canvas and Toolbar Butttons
+        private void AcceptButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var formField = this.FindName($"{prefix}") as Grid;
+
+            formField.BorderBrush = new SolidColorBrush(Colors.LightGreen);
+            formField.Tag = "accepted";
+            CollapseAllFormFields();
+            NavigateToNextField(prefix);
+        }
+
+        private void UndoButton_Click(object sender, RoutedEventArgs e)
+        {
+            dispatcherTimer.Start();
+
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var formField = this.FindName($"{prefix}") as Grid;
+            if (formField.Tag.ToString() == "accepted")
+            {
+                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+                formField.Tag = "pending";
+            }
+
+            if (inkCleared)
+            {
+                foreach (var stroke in clearedStrokesLists[prefix])
+                {
+                    currentCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+                }
+
+                clearedStrokesLists[prefix].Clear();
+                inkCleared = false;
+            }
+            else if (activeTool is InkToolbarEraserButton)
+            {
+                RedoButton_Click(null, null);
+            }
+            else
+            {
+                var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
+                if (strokes.Count > 0)
+                {
+                    var stroke = strokes[strokes.Count - 1];
+
+                    redoStacks[prefix].Push(stroke);
+
+                    stroke.Selected = true;
+                    currentCanvas.InkPresenter.StrokeContainer.DeleteSelected();
+                }
+            }
+        }
+
+        private void RedoButton_Click(object sender, RoutedEventArgs e)
+        {
+            dispatcherTimer.Start();
+
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            if (redoStacks[prefix].Count > 0)
+            {
+                var stroke = redoStacks[prefix].Pop();
+
+                currentCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+
+                var formField = this.FindName($"{prefix}") as Grid;
+                if (formField.Tag.ToString() == "accepted")
+                {
+                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+                    formField.Tag = "pending";
+                }
+            }
+        }
+
+        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as InkToolbarCustomToolButton;
+            button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            var formField = this.FindName($"{prefix}") as Grid;
+            if (formField.Tag.ToString() == "accepted")
+            {
+                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+                formField.Tag = "pending";
+            }
+
+            var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
+            foreach (var stroke in strokes)
+            {
+                clearedStrokesLists[prefix].Add(stroke);
+            }
+
+            inkCleared = true;
+            currentCanvas.InkPresenter.StrokeContainer.Clear();
+
+            var result = this.FindName($"{prefix}Result") as TextBlock;
+            result.Text = string.Empty;
+        }
+
+        private void TouchButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (touchButton.IsChecked == true)
+            {
+                foreach (string prefix in prefixes)
+                {
+                    var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+                    canvas.InkPresenter.InputDeviceTypes |= CoreInputDeviceTypes.Touch;
+                }
+            }
+            else
+            {
+                foreach (string prefix in prefixes)
+                {
+                    var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
+                    canvas.InkPresenter.InputDeviceTypes &= ~CoreInputDeviceTypes.Touch;
+                }
+            }
+        }
+        #endregion
+
+        #region Helpers
         private void CollapseAllFormFields()
         {
             foreach (string prefix in prefixes)
@@ -264,49 +430,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkToolbar.TargetInkCanvas = canvas;
             currentCanvas = canvas;
         }
-
-        private void AcceptButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-
-            int index = currentCanvas.Name.IndexOf("Canvas");
-            string prefix = currentCanvas.Name.Substring(0, index);
-
-            var formField = this.FindName($"{prefix}") as Grid;
-
-            formField.BorderBrush = new SolidColorBrush(Colors.LightGreen);
-            formField.Tag = "accepted";
-            CollapseAllFormFields();
-            NavigateToNextField(prefix);
-        }
-
-        private void UndoButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-
-            int index = currentCanvas.Name.IndexOf("Canvas");
-            string prefix = currentCanvas.Name.Substring(0, index);
-
-        }
-
-        private void RedoButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-
-            int index = currentCanvas.Name.IndexOf("Canvas");
-            string prefix = currentCanvas.Name.Substring(0, index);
-        }
-
-        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as InkToolbarCustomToolButton;
-            button.IsChecked = false;
-
-            int index = currentCanvas.Name.IndexOf("Canvas");
-            string prefix = currentCanvas.Name.Substring(0, index);
-        }
+        #endregion
     }
 }
