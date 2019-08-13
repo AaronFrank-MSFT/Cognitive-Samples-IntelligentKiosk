@@ -55,7 +55,6 @@ using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
-    //[KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
     public sealed partial class DualCanvas : Page
     {
         // API key and endpoint information for ink recognition request
