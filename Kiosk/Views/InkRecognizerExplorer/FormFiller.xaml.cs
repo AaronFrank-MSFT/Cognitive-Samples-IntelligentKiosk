@@ -66,6 +66,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         InkToolbarToolButton activeTool;
         bool inkCleared = false;
 
+        // Each form field and their contents have a "prefix" associated with them in their names to allow easy targeting of those elements
         private string[] prefixes = new string[]
         {
             "year",
@@ -94,6 +95,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
             activeTool = ballpointPen;
 
+            // Add event handlers and create redo stacks for each form field's ink canvases
             foreach (string prefix in prefixes)
             {
                 var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
@@ -106,6 +108,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 clearedStrokesLists.Add(prefix, new List<InkStroke>());
             }
 
+            // Timer created for ink recognition to happen after a set time period once a stroke ends
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Tick += DispatcherTimer_Tick;
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
@@ -164,12 +167,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
 
+            // Get strokes of the currently selected ink canvas and convert them to JSON for the request
             var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
             inkRecognizer.ClearStrokes();
             inkRecognizer.AddStrokes(strokes);
             JsonObject json = inkRecognizer.ConvertInkToJson();
 
-            // Recognize Ink from JSON and display response
+            // Recognize the strokes of the current ink canvas and convert the response JSON into an InkResponse
             var response = await inkRecognizer.RecognizeAsync(json);
             string responseString = await response.Content.ReadAsStringAsync();
             inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
@@ -388,6 +392,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void NavigateToNextField(string prefix)
         {
+            // Iterate form fields to find the field that was just "accepted" and find the first field after it that isn't "accepted"
             for (int i = 0; i < prefixes.Length; i++)
             {
                 if (prefixes[i] == prefix && i != (prefixes.Length - 1))
@@ -406,6 +411,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 }
                 else if (prefixes[i] == prefix && i == (prefixes.Length - 1))
                 {
+                    // If the last form field is "accepted" then find the first form field that it isn't from the beginning of the form and activate it
                     var nextFormField = this.FindName($"{prefix}") as Grid;
                     if (nextFormField.Tag.ToString() == "accepted")
                     {

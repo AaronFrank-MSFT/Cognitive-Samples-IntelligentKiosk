@@ -82,9 +82,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private Symbol Redo = (Symbol)0xE7A6;
         private Symbol ClearAll = (Symbol)0xE74D;
 
-        // Temporary to save initial ink
-        private Symbol Save = (Symbol)0xE74E;
-
         public DualCanvas()
         {
             this.InitializeComponent();
@@ -854,34 +851,5 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
         #endregion
-
-        // Temporary to save initial ink
-        private async void SaveButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (inkCanvas.InkPresenter.StrokeContainer.GetStrokes().Count == 0)
-            {
-                return;
-            }
-
-            var savePicker = new Windows.Storage.Pickers.FileSavePicker
-            {
-                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.PicturesLibrary
-            };
-            savePicker.FileTypeChoices.Add("Gif with embedded ISF", new List<string> { ".gif" });
-
-            StorageFile file = await savePicker.PickSaveFileAsync();
-            if (file == null)
-            {
-                return;
-            }
-
-            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
-            {
-                if (file.FileType == ".gif")
-                {
-                    await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(stream);
-                }
-            }
-        }
     }
 }
