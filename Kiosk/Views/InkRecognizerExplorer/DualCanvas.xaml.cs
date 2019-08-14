@@ -316,28 +316,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     {
                         case "inkBullet":
                         case "inkWord":
-                            AddText(recoUnit, sender, args);
+                            AddText(recoUnit);
                             break;
                         case "line":
                             DrawText(recoUnit, sender, args);
                             break;
                         case "inkDrawing":
-                            string recognizedObject = recoUnit.recognizedObject;
-                            switch (recognizedObject)
-                            {
-                                case "circle":
-                                    DrawCircle(recoUnit, sender, args);
-                                    break;
-                                case "ellipse":
-                                    DrawEllipse(recoUnit, sender, args);
-                                    break;
-                                case "drawing":
-                                    DrawLine(recoUnit, sender, args);
-                                    break;
-                                default:
-                                    DrawPolygon(recoUnit, sender, args);
-                                    break;
-                            }
+                            DrawShape(recoUnit, args);
                             break;
                     }
                 }
@@ -368,8 +353,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void TreeView_ItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)
         {
-            var node = (TreeViewNode)args.InvokedItem;
-
+            var node = args.InvokedItem as TreeViewNode;
             if (node.IsExpanded == false)
             {
                 node.IsExpanded = true;
@@ -410,7 +394,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #endregion
 
         #region Draw Results On Canvas
-        private void AddText(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
+        private void AddText(InkRecognitionUnit recoUnit)
         {
             string recognizedText = recoUnit.recognizedText;
 
@@ -499,7 +483,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             args.DrawingSession.Transform = initialTransformation;
         }
 
-        private void DrawCircle(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawShape(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
+        {
+            string recognizedObject = recoUnit.recognizedObject;
+            switch (recognizedObject)
+            {
+                case "circle":
+                    DrawCircle(recoUnit, args);
+                    break;
+                case "ellipse":
+                    DrawEllipse(recoUnit, args);
+                    break;
+                case "drawing":
+                    DrawLine(recoUnit, args);
+                    break;
+                default:
+                    DrawPolygon(recoUnit, args);
+                    break;
+            }
+        }
+
+        private void DrawCircle(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
         {
             // Center point and diameter of circle
             float floatX = (float)recoUnit.center.x;
@@ -517,7 +521,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             args.DrawingSession.DrawCircle(centerPoint, (diameter * dipsPerMm) / 2, color, strokeWidth);
         }
 
-        private void DrawEllipse(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawEllipse(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
         {
             var initialTransformation = args.DrawingSession.Transform;
 
@@ -566,7 +570,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             args.DrawingSession.Transform = initialTransformation;
         }
 
-        private void DrawLine(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawLine(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
         {
             float height = (float)recoUnit.boundingRectangle.height;
             float width = (float)recoUnit.boundingRectangle.width;
@@ -591,7 +595,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        private void DrawPolygon(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
+        private void DrawPolygon(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
         {
             if (recoUnit.points.Count > 0)
             {
@@ -628,13 +632,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             // Add all of the ink recognition units that will become nodes to a collection
             foreach (var recoUnit in inkResponse.RecognitionUnits)
             {
-                recoTreeNodes.Add(recoUnit.id, recoUnit);
-                var count = recoTreeNodes.Count;
-
-                // If the ink recognition unit is a top level node in the tree add it to a linked list to preserve order
                 if (recoUnit.parentId == 0)
                 {
                     recoTreeParentNodes.Add(recoUnit);
+                }
+                else
+                {
+                    recoTreeNodes.Add(recoUnit.id, recoUnit);
                 }
             }
 
@@ -645,8 +649,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 Content = new KeyValuePair<string, string>("Root", itemCount)
             };
 
-
-            // Traverse the linked list of top level parent nodes and append children if they have any
+            // Traverse the list of top level parent nodes and append children if they have any
             foreach (var parent in recoTreeParentNodes)
             {
                 string category = parent.category;
@@ -666,7 +669,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                         node.Children.Add(child);
                     }
                 }
-                else
+                else if (category == "inkDrawing")
                 {
                     node.Content = new KeyValuePair<string, string>(category, parent.recognizedObject);
                 }
