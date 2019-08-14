@@ -457,26 +457,29 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 FontFamily = "Ink Free"
             };
 
+
             // Build string to be drawn to canvas
-            string text = string.Empty;
+            string textLine = string.Empty;
             foreach (var item in childIds)
             {
                 int id = int.Parse(item.ToString());
+                (string text, _) = recoText[id];
 
-                text += recoText[id].Item1 + " ";
+                textLine += text + " ";
             }
 
-            var textLayout = new CanvasTextLayout(sender.Device, text, textFormat, width, height);
+            var textLayout = new CanvasTextLayout(sender.Device, textLine, textFormat, width, height);
 
             // Associate correct color with each word in string
             int index = 0;
             foreach (var item in childIds)
             {
                 int id = int.Parse(item.ToString());
+                (string text, Color color) = recoText[id];
 
-                textLayout.SetColor(index, recoText[id].Item1.Length, recoText[id].Item2);
+                textLayout.SetColor(index, text.Length, color);
 
-                index += recoText[id].Item1.Length + 1;
+                index += text.Length + 1;
             }
 
             args.DrawingSession.DrawTextLayout(textLayout, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black);
