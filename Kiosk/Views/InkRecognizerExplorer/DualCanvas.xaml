@@ -62,19 +62,7 @@
 
                     <Viewbox Grid.Column="1" VerticalAlignment="Stretch" Margin="0,5,10,0">
                         <StackPanel Orientation="Horizontal" >
-                            <ComboBox x:Name="languageDropdown" SelectionChanged="LanguageDropdown_SelectionChanged" SelectedIndex="3" Width="175" RequestedTheme="Light">
-                                <ComboBoxItem Name="zhCN" Content="Chinese (Simplified)"/>
-                                <ComboBoxItem Name="zhTW" Content="Chinese (Traditional)"/>
-                                <ComboBoxItem Name="enGB" Content="English (UK)"/>
-                                <ComboBoxItem Name="enUS" Content="English (US)"/>
-                                <ComboBoxItem Name="frFR" Content="French"/>
-                                <ComboBoxItem Name="deDE" Content="German"/>
-                                <ComboBoxItem Name="itIT" Content="Italian"/>
-                                <ComboBoxItem Name="jaJP" Content="Japanese"/>
-                                <ComboBoxItem Name="koKR" Content="Korean"/>
-                                <ComboBoxItem Name="ptPT" Content="Portuguese"/>
-                                <ComboBoxItem Name="esES" Content="Spanish"/>
-                            </ComboBox>
+                            <ComboBox x:Name="languageDropdown" DisplayMemberPath="Name" SelectedValuePath="LanguageCode" SelectedIndex="3" Width="175" RequestedTheme="Light"/>
 
                             <RelativePanel>
                                 <Button x:Name="recognizeButton" Click="RecognizeButton_Click" Width="100" RequestedTheme="Light" Background="LightGray" Margin="5,0,0,0">

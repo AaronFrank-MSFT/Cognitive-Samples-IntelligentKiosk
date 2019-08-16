@@ -40,6 +40,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Numerics;
 using Windows.Data.Json;
 using Windows.Foundation;
@@ -58,23 +59,24 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
     public sealed partial class DualCanvas : Page
     {
         // API key and endpoint information for ink recognition request
-        string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-        string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
-        const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
+        private string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
+        private string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
+        private const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
 
-        ServiceHelpers.InkRecognizer inkRecognizer;
-        InkResponse inkResponse;
+        private ServiceHelpers.InkRecognizer inkRecognizer;
+        private InkResponse inkResponse;
+        private List<Language> languages;
 
-        Dictionary<int, InkRecognitionUnit> recoTreeNodes;
-        List<InkRecognitionUnit> recoTreeParentNodes;
-        Dictionary<int, Tuple<string, Color>> recoText;
+        private Dictionary<int, InkRecognitionUnit> recoTreeNodes;
+        private List<InkRecognitionUnit> recoTreeParentNodes;
+        private Dictionary<int, Tuple<string, Color>> recoText;
 
-        Stack<InkStroke> redoStrokes;
-        List<InkStroke> clearedStrokes;
-        InkToolbarToolButton activeTool;
-        bool inkCleared = false;
+        private Stack<InkStroke> redoStrokes;
+        private List<InkStroke> clearedStrokes;
+        private InkToolbarToolButton activeTool;
+        private bool inkCleared = false;
 
-        float dipsPerMm;
+        private float dipsPerMm;
 
         private Symbol TouchWriting = (Symbol)0xED5F;
         private Symbol Undo = (Symbol)0xE7A7;
@@ -85,7 +87,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
 
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            this.inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
             recoTreeParentNodes = new List<InkRecognitionUnit>();
@@ -98,6 +100,22 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkCanvas.InkPresenter.InputDeviceTypes = CoreInputDeviceTypes.Pen | CoreInputDeviceTypes.Mouse;
             inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
+
+            languages = new List<Language>
+            {
+                new Language("Chinese (Simplified)", "zh-CN"),
+                new Language("Chinese (Traditional)", "zh-TW"),
+                new Language("English (UK)", "en-GB"),
+                new Language("English (US)", "en-US"),
+                new Language("French", "fr-FR"),
+                new Language("German", "de-DE"),
+                new Language("Italian", "it-IT"),
+                new Language("Korean", "ko-KR"),
+                new Language("Portuguese", "pt-PT"),
+                new Language("Spanish", "es-ES")
+            };
+
+            languageDropdown.ItemsSource = languages;
         }
 
         #region Event Handlers - Page
@@ -231,18 +249,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             activeTool = inkToolbar.ActiveTool;
         }
 
-        private void LanguageDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (inkRecognizer != null)
-            {
-                var dropdown = sender as ComboBox;
-                var selectedItem = dropdown.SelectedItem as ComboBoxItem;
-                string languageCode = selectedItem.Name.Insert(2, "-");
-
-                inkRecognizer.SetLanguage(languageCode);
-            }
-        }
-
         private async void RecognizeButton_Click(object sender, RoutedEventArgs e)
         {
             var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
@@ -256,7 +262,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 ViewCanvasButton_Click(null, null);
                 ClearJson();
 
-                // Convert Ink to JSON for request and display it
+                // Set language code, convert ink to JSON for request, and display it
+                string languageCode = languageDropdown.SelectedValue.ToString();
+                inkRecognizer.SetLanguage(languageCode);
+
                 inkRecognizer.ClearStrokes();
                 inkRecognizer.AddStrokes(strokes);
                 JsonObject json = inkRecognizer.ConvertInkToJson();
@@ -303,11 +312,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             if (!string.IsNullOrEmpty(responseJson.Text))
             {
-                // If needed to use the device's DPI, and example is below. If you use a different DPI ensure that it is the same number used in inkRecognizer.ConvertInkToJson().
+                // For demo purposes and keeping the initially loaded ink consistent a value of 96 for DPI was used
+                // For production, it is most likely better to use the device's DPI when generating the request JSON and an example of that is below
                 //float dpi = args.DrawingSession.Dpi;
-                //dipsPerMm = dpi / 25.4f;
+                //dipsPerMm = inkRecognizer.GetDipsPerMm(dpi);
 
-                dipsPerMm = 96 / 25.4f;
+                dipsPerMm = inkRecognizer.GetDipsPerMm(96);
 
                 foreach (var recoUnit in inkResponse.RecognitionUnits)
                 {
@@ -457,12 +467,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 FontFamily = "Ink Free"
             };
 
-
             // Build string to be drawn to canvas
             string textLine = string.Empty;
             foreach (var item in childIds)
             {
                 int id = int.Parse(item.ToString());
+
+                // Deconstruct the tuple to get the recognized text from it
                 (string text, _) = recoText[id];
 
                 textLine += text + " ";
@@ -475,6 +486,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             foreach (var item in childIds)
             {
                 int id = int.Parse(item.ToString());
+
+                // Deconstruct the tuple to get the recognized text and color from it
                 (string text, Color color) = recoText[id];
 
                 textLayout.SetColor(index, text.Length, color);
@@ -498,7 +511,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     DrawEllipse(recoUnit, args);
                     break;
                 case "drawing":
-                    DrawLine(recoUnit, args);
+                    DrawHorizontalLine(recoUnit, args);
                     break;
                 default:
                     DrawPolygon(recoUnit, args);
@@ -573,11 +586,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             args.DrawingSession.Transform = initialTransformation;
         }
 
-        private void DrawLine(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
+        private void DrawHorizontalLine(InkRecognitionUnit recoUnit, CanvasDrawEventArgs args)
         {
             float height = (float)recoUnit.boundingRectangle.height;
             float width = (float)recoUnit.boundingRectangle.width;
 
+            // The ink recognizer does not recognize horizontal lines, however this check is used as a heuristic to render horizontal lines on the result canvas
             if (height <= 10 && width >= 20)
             {
                 // Bottom left and right corner points of rotated bounding rectangle

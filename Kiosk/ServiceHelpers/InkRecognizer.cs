@@ -45,71 +45,79 @@ namespace ServiceHelpers
 {
     public class InkRecognizer
     {
-        string inkRecognitionUrl;
-        HttpClient httpClient;
+        private string inkRecognitionUrl;
+        public HttpClient httpClient;
 
         private IDictionary<uint, InkStroke> StrokeMap { get; set; }
-        private string LanguageCode { get; set; }
+        private string LanguageCode;
 
         public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
         {
-            httpClient = new HttpClient() { BaseAddress = new Uri(endpoint) };
-            httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
+            this.httpClient = new HttpClient() { BaseAddress = new Uri(endpoint) };
+            this.httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
 
             this.inkRecognitionUrl = inkRecognitionUrl;
 
-            StrokeMap = new Dictionary<uint, InkStroke>();
-            LanguageCode = "en-US";
+            this.StrokeMap = new Dictionary<uint, InkStroke>();
+            this.LanguageCode = "en-US";
         }
 
         public void AddStrokes(IReadOnlyList<InkStroke> strokes)
         {
             foreach (var stroke in strokes)
             {
-                StrokeMap[stroke.Id] = stroke;
+                this.StrokeMap[stroke.Id] = stroke;
             }
         }
 
         public void ClearStrokes()
         {
-            StrokeMap.Clear();
+            this.StrokeMap.Clear();
         }
 
         public void SetLanguage(string languageCode)
         {
-            LanguageCode = languageCode;
+            this.LanguageCode = languageCode;
+        }
+
+        public float GetDipsPerMm(float dpi)
+        {
+            float dipsPerMm = dpi / 25.4f;
+
+            return dipsPerMm;
         }
 
         public JsonObject ConvertInkToJson()
         {
-            // If needed to use the device's DPI, and example is below. Whatever DPI is used below will need to be used again when handling the response's ink points.
+            // For demo purposes and keeping the initially loaded ink consistent a value of 96 for DPI was used
+            // For production, it is most likely better to use the device's DPI when generating the request JSON and an example of that is below
             //var displayInformation = DisplayInformation.GetForCurrentView();
             //float dpi = displayInformation.LogicalDpi;
-            //float dipsPerMm = dpi / 25.4f;
+            //float dipsPerMm = GetDipsPerMm(dpi);
 
-            float dipsPerMm = 96 / 25.4f;
+            float dipsPerMm = GetDipsPerMm(96);
 
             var payload = new JsonObject();
             var strokesArray = new JsonArray();
 
-            foreach (var stroke in StrokeMap.Values)
+            foreach (InkStroke stroke in StrokeMap.Values)
             {
                 var jStroke = new JsonObject();
-                var pointsCollection = stroke.GetInkPoints();
-                var transform = stroke.PointTransform;
+                IReadOnlyList<InkPoint> pointsCollection = stroke.GetInkPoints();
+                Matrix3x2 transform = stroke.PointTransform;
 
                 jStroke["id"] = JsonValue.CreateNumberValue(stroke.Id);
 
                 if (pointsCollection.Count >= 2)
                 {
 
-                    StringBuilder points = new StringBuilder();
+                    var points = new StringBuilder();
                     for (int i = 0; i < pointsCollection.Count; i++)
                     {
                         var transformedPoint = Vector2.Transform(new Vector2((float)pointsCollection[i].Position.X, (float)pointsCollection[i].Position.Y), transform);
                         double x = transformedPoint.X / dipsPerMm;
                         double y = transformedPoint.Y / dipsPerMm;
-                        points.Append(x + "," + y);
+                        points.Append($"{x},{y}");
                         if (i != pointsCollection.Count - 1)
                         {
                             points.Append(",");
@@ -120,8 +128,9 @@ namespace ServiceHelpers
                     strokesArray.Add(jStroke);
                 }
             }
+
             payload["version"] = JsonValue.CreateNumberValue(1.0);
-            payload["language"] = JsonValue.CreateStringValue(LanguageCode);
+            payload["language"] = JsonValue.CreateStringValue(this.LanguageCode);
             payload["strokes"] = strokesArray;
 
             return payload;
@@ -131,7 +140,7 @@ namespace ServiceHelpers
         {
             string payload = json.Stringify();
             var httpContent = new StringContent(payload, Encoding.UTF8, "application/json");
-            var httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
+            HttpResponseMessage httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
 
             return httpResponse;
         }

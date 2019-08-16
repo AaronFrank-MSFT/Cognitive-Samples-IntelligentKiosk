@@ -31,19 +31,17 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // 
 
-using System.Collections.Generic;
-
 namespace IntelligentKioskSample.Models.InkRecognizerExplorer
 {
-    public class InkResponse
+    class Language
     {
-        public List<InkRecognitionUnit> RecognitionUnits { get; set; }
-        public Error Error { get; set; }
-    }
+        public string Name { get; set; }
+        public string LanguageCode { get; set; }
 
-    public class Error
-    {
-        public string code { get; set; }
-        public string message { get; set; }
+        public Language(string name, string languageCode)
+        {
+            this.Name = name;
+            this.LanguageCode = languageCode;
+        }
     }
 }
