@@ -43,10 +43,10 @@ using Windows.UI.Input.Inking;
 
 namespace ServiceHelpers
 {
-    public class InkRecognizer
+    public class InkRecognizer : IDisposable
     {
         private string inkRecognitionUrl;
-        public HttpClient httpClient;
+        private HttpClient httpClient;
 
         private IDictionary<uint, InkStroke> StrokeMap { get; set; }
         private string LanguageCode;
@@ -143,6 +143,11 @@ namespace ServiceHelpers
             HttpResponseMessage httpResponse = await httpClient.PutAsync(inkRecognitionUrl, httpContent);
 
             return httpResponse;
+        }
+
+        public void Dispose()
+        {
+            ((IDisposable)httpClient).Dispose();
         }
     }
 }

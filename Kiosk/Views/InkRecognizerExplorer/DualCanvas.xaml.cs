@@ -58,6 +58,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     public sealed partial class DualCanvas : Page
     {
+        private bool previouslyLoaded = false;
+
         // API key and endpoint information for ink recognition request
         private string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
         private string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
@@ -65,7 +67,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private ServiceHelpers.InkRecognizer inkRecognizer;
         private InkResponse inkResponse;
-        private List<Language> languages;
 
         private Dictionary<int, InkRecognitionUnit> recoTreeNodes;
         private List<InkRecognitionUnit> recoTreeParentNodes;
@@ -86,8 +87,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         public DualCanvas()
         {
             this.InitializeComponent();
+            this.NavigationCacheMode = NavigationCacheMode.Enabled;
 
-            this.inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
             recoTreeParentNodes = new List<InkRecognitionUnit>();
@@ -101,7 +103,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
-            languages = new List<Language>
+            var languages = new List<Language>
             {
                 new Language("Chinese (Simplified)", "zh-CN"),
                 new Language("Chinese (Traditional)", "zh-TW"),
@@ -127,26 +129,49 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
             else
             {
-                var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
-                if (file != null)
+                if (!previouslyLoaded)
                 {
-                    using (var stream = await file.OpenSequentialReadAsync())
+                    var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
+                    if (file != null)
                     {
-                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
+                        using (var stream = await file.OpenSequentialReadAsync())
+                        {
+                            await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
+                        }
                     }
+
+                    previouslyLoaded = true;
+                }
+                else
+                {
+                    // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
+                    // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
+                    inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+                    var resultCanvas = new CanvasControl();
+                    resultCanvas.Name = "resultCanvas";
+                    resultCanvas.Draw += ResultCanvas_Draw;
+                    resultCanvas.SetValue(Grid.ColumnSpanProperty, 2);
+                    resultCanvas.SetValue(Grid.RowProperty, 2);
+
+                    resultCanvasGrid.Children.Add(resultCanvas);
                 }
 
                 RecognizeButton_Click(null, null);
+                base.OnNavigatedTo(e);
             }
-
-            base.OnNavigatedTo(e);
         }
 
-        void MainPage_Unloaded(object sender, RoutedEventArgs e)
+        void Page_Unloaded(object sender, RoutedEventArgs e)
         {
+            // Calling Dispose() on InkRecognizer to dispose of resources being used by HttpClient
+            inkRecognizer.Dispose();
+
             // Dispose Win2D resources to avoid memory leak
-            this.resultCanvas.RemoveFromVisualTree();
-            this.resultCanvas = null;
+            // Reference: https://microsoft.github.io/Win2D/html/RefCycles.htm
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+            resultCanvas.RemoveFromVisualTree();
+            resultCanvas = null;
         }
         #endregion
 
@@ -281,6 +306,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     // Generate JSON tree view and draw result on right side canvas
                     CreateJsonTree();
                     responseJson.Text = FormatJson(responseString);
+
+                    var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
                     resultCanvas.Invalidate();
                 }
                 else
@@ -350,12 +377,16 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             jsonPivot.Visibility = Visibility.Collapsed;
             viewCanvasButton.Visibility = Visibility.Collapsed;
             viewJsonButton.Visibility = Visibility.Visible;
+
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
             resultCanvas.Visibility = Visibility.Visible;
         }
 
         private void ViewJsonButton_Click(object sender, RoutedEventArgs e)
         {
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
             resultCanvas.Visibility = Visibility.Collapsed;
+
             viewJsonButton.Visibility = Visibility.Collapsed;
             viewCanvasButton.Visibility = Visibility.Visible;
             jsonPivot.Visibility = Visibility.Visible;
@@ -745,6 +776,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             requestJson.Text = string.Empty;
             responseJson.Text = string.Empty;
             treeView.RootNodes.Clear();
+
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
             resultCanvas.Invalidate();
         }
 
