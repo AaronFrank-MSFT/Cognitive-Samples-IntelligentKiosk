@@ -65,10 +65,5 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     break;
             }
         }
-
-        private void MainPage_Unloaded(object sender, RoutedEventArgs e)
-        {
-
-        }
     }
 }

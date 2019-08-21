@@ -40,8 +40,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Numerics;
+using System.Threading.Tasks;
 using Windows.Data.Json;
 using Windows.Foundation;
 using Windows.Graphics.Display;
@@ -88,8 +88,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             this.InitializeComponent();
             this.NavigationCacheMode = NavigationCacheMode.Enabled;
-
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
             recoTreeParentNodes = new List<InkRecognitionUnit>();
@@ -142,24 +140,22 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                     previouslyLoaded = true;
                 }
-                else
-                {
-                    // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
-                    // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
-                    inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
-
-                    var resultCanvas = new CanvasControl();
-                    resultCanvas.Name = "resultCanvas";
-                    resultCanvas.Draw += ResultCanvas_Draw;
-                    resultCanvas.SetValue(Grid.ColumnSpanProperty, 2);
-                    resultCanvas.SetValue(Grid.RowProperty, 2);
-
-                    resultCanvasGrid.Children.Add(resultCanvas);
-                }
-
-                RecognizeButton_Click(null, null);
-                base.OnNavigatedTo(e);
             }
+
+            // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
+            // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            var resultCanvas = new CanvasControl();
+            resultCanvas.Name = "resultCanvas";
+            resultCanvas.Draw += ResultCanvas_Draw;
+            resultCanvas.SetValue(Grid.ColumnSpanProperty, 2);
+            resultCanvas.SetValue(Grid.RowProperty, 2);
+
+            resultCanvasGrid.Children.Add(resultCanvas);
+
+            RecognizeButton_Click(null, null);
+            base.OnNavigatedTo(e);
         }
 
         void Page_Unloaded(object sender, RoutedEventArgs e)
@@ -296,30 +292,37 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 JsonObject json = inkRecognizer.ConvertInkToJson();
                 requestJson.Text = FormatJson(json.Stringify());
 
-                // Recognize Ink from JSON and display response
-                var response = await inkRecognizer.RecognizeAsync(json);
-                string responseString = await response.Content.ReadAsStringAsync();
-                inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
-
-                if (response.StatusCode == HttpStatusCode.OK)
+                try
                 {
-                    // Generate JSON tree view and draw result on right side canvas
-                    CreateJsonTree();
-                    responseJson.Text = FormatJson(responseString);
+                    // Recognize Ink from JSON and display response
+                    var response = await inkRecognizer.RecognizeAsync(json);
+                    string responseString = await response.Content.ReadAsStringAsync();
+                    inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
 
-                    var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
-                    resultCanvas.Invalidate();
-                }
-                else
-                {
-                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
+                    if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                        // Generate JSON tree view and draw result on right side canvas
+                        CreateJsonTree();
+                        responseJson.Text = FormatJson(responseString);
+
+                        var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+                        resultCanvas.Invalidate();
                     }
                     else
                     {
-                        await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                        }
+                        else
+                        {
+                            await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                        }
                     }
+                }
+                catch (TaskCanceledException)
+                {
+                    // This may occur when a user attempts to navigate to another page during recognition. In this case, we just want to continue on to the selected page
                 }
 
                 // Re-enable use of toolbar after recognition and rendering

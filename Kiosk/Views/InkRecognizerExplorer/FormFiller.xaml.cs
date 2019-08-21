@@ -37,6 +37,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using Windows.Data.Json;
 using Windows.UI;
 using Windows.UI.Core;
@@ -122,13 +123,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             {
                 await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
             }
-            else
-            {
-                // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
-                inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
 
-                base.OnNavigatedTo(e);
-            }
+            // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            base.OnNavigatedTo(e);
         }
 
         void Page_Unloaded(object sender, RoutedEventArgs e)

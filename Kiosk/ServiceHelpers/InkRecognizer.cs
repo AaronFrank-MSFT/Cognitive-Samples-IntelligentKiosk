@@ -43,7 +43,7 @@ using Windows.UI.Input.Inking;
 
 namespace ServiceHelpers
 {
-    public class InkRecognizer : IDisposable
+    public class InkRecognizer
     {
         private string inkRecognitionUrl;
         private HttpClient httpClient;
@@ -110,7 +110,6 @@ namespace ServiceHelpers
 
                 if (pointsCollection.Count >= 2)
                 {
-
                     var points = new StringBuilder();
                     for (int i = 0; i < pointsCollection.Count; i++)
                     {
@@ -147,7 +146,7 @@ namespace ServiceHelpers
 
         public void Dispose()
         {
-            ((IDisposable)httpClient).Dispose();
+            httpClient.Dispose();
         }
     }
 }
