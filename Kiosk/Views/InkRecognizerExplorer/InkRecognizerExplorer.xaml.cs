@@ -40,7 +40,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
     [KioskExperience(Title = "Ink Recognizer Explorer", ImagePath = "ms-appx:/Assets/InkRecognizerExplorer.png")]
     public sealed partial class InkRecognizerExplorer : Page
     {
-
         public InkRecognizerExplorer()
         {
             this.InitializeComponent();
@@ -48,10 +47,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void NavView_Loaded(object sender, RoutedEventArgs e)
         {
-            dualFrame.SourcePageType = typeof(DualCanvas);
-            formFrame.SourcePageType = typeof(FormFiller);
-            singleFrame.SourcePageType = typeof(SingleCanvas);
-
+            frame.SourcePageType = typeof(DualCanvas);
             navView.SelectedItem = navView.MenuItems[0];
         }
 
@@ -62,19 +58,13 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             switch (item.Name)
             {
                 case "dualMode":
-                    formFrame.Visibility = Visibility.Collapsed;
-                    singleFrame.Visibility = Visibility.Collapsed;
-                    dualFrame.Visibility = Visibility.Visible;
+                    frame.Navigate(typeof(DualCanvas));
                     break;
                 case "formMode":
-                    dualFrame.Visibility = Visibility.Collapsed;
-                    singleFrame.Visibility = Visibility.Collapsed;
-                    formFrame.Visibility = Visibility.Visible;
+                    frame.Navigate(typeof(FormFiller));
                     break;
                 case "singleMode":
-                    dualFrame.Visibility = Visibility.Collapsed;
-                    formFrame.Visibility = Visibility.Collapsed;
-                    singleFrame.Visibility = Visibility.Visible;
+                    frame.Navigate(typeof(SingleCanvas));
                     break;
             }
         }

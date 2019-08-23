@@ -37,6 +37,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using Windows.Data.Json;
 using Windows.UI;
 using Windows.UI.Core;
@@ -46,11 +47,13 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     public sealed partial class FormFiller : Page
     {
+        // API key and endpoint information for ink recognition request
         string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
         string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
         const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
@@ -88,8 +91,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         public FormFiller()
         {
             this.InitializeComponent();
-
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            this.NavigationCacheMode = NavigationCacheMode.Enabled;
 
             redoStacks = new Dictionary<string, Stack<InkStroke>>();
             clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
@@ -113,6 +115,27 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             dispatcherTimer.Tick += DispatcherTimer_Tick;
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
         }
+
+        #region Event Handlers - Page
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
+            {
+                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
+            }
+
+            // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+
+            base.OnNavigatedTo(e);
+        }
+
+        void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Calling Dispose() on InkRecognizer to dispose of resources being used by HttpClient
+            inkRecognizer.Dispose();
+        }
+        #endregion
 
         #region Event Handlers - Canvas, Timer, Form Field
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)

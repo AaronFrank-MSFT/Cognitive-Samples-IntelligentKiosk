@@ -5,7 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    x:Name="mainPage"
     Background="Black">
 
     <Grid>
@@ -30,8 +29,6 @@
             </NavigationView.MenuItems>
         </NavigationView>
 
-        <Frame Grid.Row="2" x:Name="dualFrame"/>
-        <Frame Grid.Row="2" x:Name="formFrame" Visibility="Collapsed"/>
-        <Frame Grid.Row="2" x:Name="singleFrame" Visibility="Collapsed"/>
+        <Frame Grid.Row="2" x:Name="frame"/>
     </Grid>
 </Page>
