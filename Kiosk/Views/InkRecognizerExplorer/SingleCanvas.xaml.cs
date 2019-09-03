@@ -37,8 +37,10 @@ using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
+using Point = Windows.Foundation.Point;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Numerics;
@@ -52,7 +54,10 @@ using Windows.UI.Input.Inking;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Windows.UI.Xaml.Shapes;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
@@ -65,7 +70,11 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private ServiceHelpers.InkRecognizer inkRecognizer;
         private InkResponse inkResponse;
-        private List<Language> languages;
+
+        private Dictionary<string, List<InkStroke>> hiddenStrokes;
+        private Dictionary<string, Tuple<CanvasTextLayout, Point>> wordTextLayouts;
+        private Dictionary<string, Tuple<CanvasTextLayout, Point>> lineTextLayouts;
+        private Dictionary<string, Tuple<CanvasTextLayout, Point>> drawnTextLayouts;
 
         private Dictionary<int, InkRecognitionUnit> recoTreeNodes;
         private List<InkRecognitionUnit> recoTreeParentNodes;
@@ -86,8 +95,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         public SingleCanvas()
         {
             this.InitializeComponent();
+            this.NavigationCacheMode = NavigationCacheMode.Enabled;
 
-            this.inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            hiddenStrokes = new Dictionary<string, List<InkStroke>>();
+            wordTextLayouts = new Dictionary<string, Tuple<CanvasTextLayout, Point>>();
+            lineTextLayouts = new Dictionary<string, Tuple<CanvasTextLayout, Point>>();
+            drawnTextLayouts = new Dictionary<string, Tuple<CanvasTextLayout, Point>>();
 
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
             recoTreeParentNodes = new List<InkRecognitionUnit>();
@@ -101,7 +114,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             inkCanvas.InkPresenter.StrokeInput.StrokeStarted += InkPresenter_StrokeInputStarted;
             inkCanvas.InkPresenter.StrokesErased += InkPresenter_StrokesErased;
 
-            languages = new List<Language>
+            inkCanvas.InkPresenter.InputProcessingConfiguration.RightDragAction = InkInputRightDragAction.LeaveUnprocessed;
+            inkCanvas.InkPresenter.UnprocessedInput.PointerPressed += InkCanvas_Tapped;
+
+            var languages = new List<Language>
             {
                 new Language("Chinese (Simplified)", "zh-CN"),
                 new Language("Chinese (Traditional)", "zh-TW"),
@@ -117,6 +133,43 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             languageDropdown.ItemsSource = languages;
         }
+
+        #region Event Handlers - Page
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
+            {
+                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
+            }
+
+            // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
+            // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            dipsPerMm = inkRecognizer.GetDipsPerMm(96);
+
+            resultCanvas = new CanvasControl();
+            resultCanvas.Name = "resultCanvas";
+            resultCanvas.SetValue(Grid.ColumnSpanProperty, 4);
+            resultCanvas.SetValue(Grid.RowProperty, 1);
+
+            canvasGrid.Children.Prepend(resultCanvas);
+
+            RecognizeButton_Click(null, null);
+            base.OnNavigatedTo(e);
+        }
+
+        void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Calling Dispose() on InkRecognizer to dispose of resources being used by HttpClient
+            inkRecognizer.Dispose();
+
+            // Dispose Win2D resources to avoid memory leak
+            // Reference: https://microsoft.github.io/Win2D/html/RefCycles.htm
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+            resultCanvas.RemoveFromVisualTree();
+            resultCanvas = null;
+        }
+        #endregion
 
         #region Event Handlers - Ink Toolbar
         private void UndoButton_Click(object sender, RoutedEventArgs e)
@@ -209,6 +262,20 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 ViewCanvasButton_Click(null, null);
                 ClearJson();
 
+                // Add any "hidden" strokes back to the canvas before recognizing
+                if (hiddenStrokes.Count > 0)
+                {
+                    foreach (KeyValuePair<string, List<InkStroke>> item in hiddenStrokes)
+                    {
+                        foreach (InkStroke stroke in item.Value)
+                        {
+                            inkCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+                        }
+                    }
+
+                    strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
+                }
+
                 // Set language code, convert ink to JSON for request, and display it
                 string languageCode = languageDropdown.SelectedValue.ToString();
                 inkRecognizer.SetLanguage(languageCode);
@@ -228,7 +295,17 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                     // Generate JSON tree view and draw result on right side canvas
                     CreateJsonTree();
                     responseJson.Text = FormatJson(responseString);
-                    resultCanvas.Invalidate();
+
+                    hiddenStrokes.Clear();
+                    wordTextLayouts.Clear();
+                    lineTextLayouts.Clear();
+                    drawnTextLayouts.Clear();
+
+                    var recoUnits = inkResponse.RecognitionUnits.Where(x => x.category == "inkWord" || x.category == "line");
+                    foreach (var recoUnit in recoUnits)
+                    {
+                        CreateTextLayout(recoUnit);
+                    }
                 }
                 else
                 {
@@ -266,22 +343,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             viewDataButton.Visibility = Visibility.Collapsed;
             viewCanvasButton.Visibility = Visibility.Visible;
         }
-
-        private void ViewTextButton_Click(object sender, RoutedEventArgs e)
-        {
-            viewTextButton.Visibility = Visibility.Collapsed;
-            viewInkButton.Visibility = Visibility.Visible;
-            inkCanvas.Visibility = Visibility.Collapsed;
-            resultCanvas.Visibility = Visibility.Visible;
-        }
-
-        private void ViewInkButton_Click(object sender, RoutedEventArgs e)
-        {
-            viewInkButton.Visibility = Visibility.Collapsed;
-            viewTextButton.Visibility = Visibility.Visible;
-            resultCanvas.Visibility = Visibility.Collapsed;
-            inkCanvas.Visibility = Visibility.Visible;
-        }
         #endregion
 
         #region Event Handlers - Ink Canvas
@@ -303,6 +364,80 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             activeTool = inkToolbar.ActiveTool;
         }
+
+        //private void InkCanvas_Tapped(object sender, TappedRoutedEventArgs e)
+        private void InkCanvas_Tapped(InkUnprocessedInput input, PointerEventArgs e)
+        {
+            if (inkResponse != null)
+            {
+                //var tapPosition = e.GetPosition(inkCanvas);
+                var tapPosition = e.CurrentPoint.Position;
+                foreach (var recoUnit in inkResponse.RecognitionUnits)
+                {
+                    if (recoUnit.category == "inkWord")
+                    {
+                        var rect = recoUnit.boundingRectangle;
+                        var boundingRect = new Rect(rect.topX * dipsPerMm, rect.topY * dipsPerMm, rect.width * dipsPerMm, rect.height * dipsPerMm);
+                        if (boundingRect.Contains(tapPosition))
+                        {
+                            if (drawnTextLayouts.ContainsKey(recoUnit.recognizedText))
+                            {
+                                drawnTextLayouts.Remove(recoUnit.recognizedText);
+
+                                var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+                                resultCanvas.Invalidate();
+
+                                var strokes = hiddenStrokes[recoUnit.recognizedText];
+                                foreach (var stroke in strokes)
+                                {
+                                    float x = (float)stroke.BoundingRect.X;
+                                    float y = (float)stroke.BoundingRect.Y;
+                                    var strokePosition = new Point(x, y);
+
+                                    if (boundingRect.Contains(strokePosition))
+                                    {
+                                        inkCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
+                                    }
+                                }
+
+                                hiddenStrokes.Remove(recoUnit.recognizedText);
+                            }
+                            else
+                            {
+                                var strokes = inkCanvas.InkPresenter.StrokeContainer.GetStrokes();
+                                var hiddenStrokesList = new List<InkStroke>();
+                                foreach (InkStroke stroke in strokes)
+                                {
+                                    float x = (float)stroke.BoundingRect.X;
+                                    float y = (float)stroke.BoundingRect.Y;
+                                    var strokePosition = new Point(x, y);
+
+                                    if (boundingRect.Contains(strokePosition))
+                                    {
+                                        stroke.Selected = true;
+                                        hiddenStrokesList.Add(stroke);
+                                    }
+                                }
+
+                                hiddenStrokes.Add(recoUnit.recognizedText, hiddenStrokesList);
+                                inkCanvas.InkPresenter.StrokeContainer.DeleteSelected();
+
+                                var textLayout = wordTextLayouts[recoUnit.recognizedText];
+                                drawnTextLayouts.Add(recoUnit.recognizedText, textLayout);
+
+                                var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+                                resultCanvas.Invalidate();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void InkCanvas_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        {
+
+        }
         #endregion
 
         #region Draw Results
@@ -310,117 +445,17 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             if (!string.IsNullOrEmpty(responseJson.Text))
             {
-                // For demo purposes and keeping the initially loaded ink consistent a value of 96 for DPI was used
-                // For production, it is most likely better to use the device's DPI when generating the request JSON and an example of that is below
-                //float dpi = args.DrawingSession.Dpi;
-                //dipsPerMm = inkRecognizer.GetDipsPerMm(dpi);
-
-                dipsPerMm = inkRecognizer.GetDipsPerMm(96);
-
-                foreach (var recoUnit in inkResponse.RecognitionUnits)
+                foreach (var layout in drawnTextLayouts)
                 {
-                    string category = recoUnit.category;
-                    switch (category)
-                    {
-                        case "inkBullet":
-                        case "inkWord":
-                            AddText(recoUnit);
-                            break;
-                        case "line":
-                            DrawText(recoUnit, sender, args);
-                            break;
-                    }
+                    // Deconstruct tuple from drawnTextLayouts and draw the attached text layout on the result canvas
+                    (CanvasTextLayout textLayout, Point point) = layout.Value;
+                    args.DrawingSession.DrawTextLayout(textLayout, (float)point.X, (float)point.Y, Colors.Black);
                 }
-
-                recoText.Clear();
             }
             else
             {
                 args.DrawingSession.Clear(Colors.White);
             }
-        }
-
-        private void AddText(InkRecognitionUnit recoUnit)
-        {
-            string recognizedText = recoUnit.recognizedText;
-
-            if (recognizedText != null)
-            {
-                int id = recoUnit.id;
-
-                // Color of ink word or ink bullet
-                var color = GetStrokeColor(recoUnit);
-
-                var text = new Tuple<string, Color>(recognizedText, color);
-                recoText.Add(id, text);
-            }
-        }
-
-        private void DrawText(InkRecognitionUnit recoUnit, CanvasControl sender, CanvasDrawEventArgs args)
-        {
-            var childIds = recoUnit.childIds;
-            var initialTransformation = args.DrawingSession.Transform;
-
-            // Points of bounding rectangle to align drawn text
-            float floatX = (float)recoUnit.boundingRectangle.topX;
-            float floatY = (float)recoUnit.boundingRectangle.topY;
-
-            // Rotated bounding rectangle points to get correct height and width of text being drawn
-            float topRightX = (float)recoUnit.rotatedBoundingRectangle[1].x;
-            float topRightY = (float)recoUnit.rotatedBoundingRectangle[1].y;
-
-            float bottomRightX = (float)recoUnit.rotatedBoundingRectangle[2].x;
-            float bottomRightY = (float)recoUnit.rotatedBoundingRectangle[2].y;
-
-            float bottomLeftX = (float)recoUnit.rotatedBoundingRectangle[3].x;
-            float bottomLeftY = (float)recoUnit.rotatedBoundingRectangle[3].y;
-
-            // Height and width of bounding rectangle to get font size and width for text layout
-            float height = GetDistanceBetweenPoints(topRightX, bottomRightX, topRightY, bottomRightY) * dipsPerMm;
-            float width = GetDistanceBetweenPoints(bottomLeftX, bottomRightX, bottomLeftY, bottomRightY) * dipsPerMm;
-
-            if (height < 45)
-            {
-                height = 45;
-            }
-
-            var textFormat = new CanvasTextFormat()
-            {
-                FontSize = height - 5,
-                WordWrapping = CanvasWordWrapping.NoWrap,
-                FontFamily = "Ink Free"
-            };
-
-            // Build string to be drawn to canvas
-            string textLine = string.Empty;
-            foreach (var item in childIds)
-            {
-                int id = int.Parse(item.ToString());
-
-                // Deconstruct the tuple to get the recognized text from it
-                (string text, _) = recoText[id];
-
-                textLine += text + " ";
-            }
-
-            var textLayout = new CanvasTextLayout(sender.Device, textLine, textFormat, width, height);
-
-            // Associate correct color with each word in string
-            int index = 0;
-            foreach (var item in childIds)
-            {
-                int id = int.Parse(item.ToString());
-
-                // Deconstruct the tuple to get the recognized text and color from it
-                (string text, Color color) = recoText[id];
-
-                textLayout.SetColor(index, text.Length, color);
-
-                index += text.Length + 1;
-            }
-
-            args.DrawingSession.DrawTextLayout(textLayout, floatX * dipsPerMm, floatY * dipsPerMm, Colors.Black);
-            args.DrawingSession.Transform = initialTransformation;
         }
         #endregion
 
@@ -567,6 +602,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             requestJson.Text = string.Empty;
             responseJson.Text = string.Empty;
             treeView.RootNodes.Clear();
+
+            var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
             resultCanvas.Invalidate();
         }
 
@@ -618,22 +655,70 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        private float GetDistanceBetweenPoints(float x1, float x2, float y1, float y2)
-        {
-            float x = (x2 - x1) * (x2 - x1);
-            float y = (y2 - y1) * (y2 - y1);
-
-            float distance = (float)Math.Sqrt(x + y);
-
-            return distance;
-        }
-
         private Color GetStrokeColor(InkRecognitionUnit recoUnit)
         {
             uint strokeId = (uint)recoUnit.strokeIds[0];
             var color = inkCanvas.InkPresenter.StrokeContainer.GetStrokeById(strokeId).DrawingAttributes.Color;
 
             return color;
+        }
+
+        private void CreateTextLayout(InkRecognitionUnit recoUnit)
+        {
+            var textFormat = new CanvasTextFormat()
+            {
+                WordWrapping = CanvasWordWrapping.NoWrap,
+                FontFamily = "Ink Free"
+            };
+
+            if (recoUnit.category == "inkWord")
+            {
+                // Get height of inkWord's line instead of the word itself so all words rendered will be the same height on that line
+                var layoutWordParentLine = inkResponse.RecognitionUnits.Where(x => x.id == recoUnit.parentId).Single();
+                float parentLineHeight = (float)layoutWordParentLine.boundingRectangle.height * dipsPerMm;
+                float parentLineY = (float)layoutWordParentLine.boundingRectangle.topY * dipsPerMm;
+
+                textFormat.FontSize = parentLineHeight;
+                string recognizedText = recoUnit.recognizedText;
+                float width = (float)recoUnit.boundingRectangle.width * dipsPerMm;
+                float height = parentLineHeight;
+                Color color = GetStrokeColor(recoUnit);
+
+                var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+                var textLayout = new CanvasTextLayout(resultCanvas.Device, recognizedText, textFormat, width, height);
+                textLayout.SetColor(0, recognizedText.Length, color);
+
+                var point = new Point(recoUnit.boundingRectangle.topX * dipsPerMm, parentLineY);
+
+                wordTextLayouts.TryAdd(recognizedText, new Tuple<CanvasTextLayout, Point>(textLayout, point));
+            }
+            else if (recoUnit.category == "line")
+            {
+                float boundingRectHeight = (float)recoUnit.boundingRectangle.height * dipsPerMm;
+                float boundingRectX = (float)recoUnit.boundingRectangle.topX * dipsPerMm;
+                float boundingRectY = (float)recoUnit.boundingRectangle.topY * dipsPerMm;
+
+                textFormat.FontSize = boundingRectHeight;
+                string recognizedText = recoUnit.recognizedText;
+                float width = (float)recoUnit.boundingRectangle.width * dipsPerMm;
+                float height = boundingRectHeight;
+
+                var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
+                var textLayout = new CanvasTextLayout(resultCanvas.Device, recognizedText, textFormat, width, height);
+
+                int index = 0;
+                var layoutWords = inkResponse.RecognitionUnits.Where(x => recoUnit.childIds.Contains(x.id));
+                foreach (var word in layoutWords)
+                {
+                    var color = GetStrokeColor(word);
+                    textLayout.SetColor(index, word.recognizedText.Length, color);
+                    index += word.recognizedText.Length + 1;
+                }
+
+                var point = new Point(boundingRectX, boundingRectY);
+
+                lineTextLayouts.TryAdd(recognizedText, new Tuple<CanvasTextLayout, Point>(textLayout, point));
+            }
         }
 
         private void ExpandChildren(TreeViewNode node)

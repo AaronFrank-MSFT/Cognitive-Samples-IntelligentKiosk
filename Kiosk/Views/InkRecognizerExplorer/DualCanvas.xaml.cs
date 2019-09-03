@@ -306,7 +306,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                         responseJson.Text = FormatJson(responseString);
 
                         var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
-                        resultCanvas.Invalidate();
+                        if (resultCanvas != null)
+                        {
+                            resultCanvas.Invalidate();
+                        }
                     }
                     else
                     {
