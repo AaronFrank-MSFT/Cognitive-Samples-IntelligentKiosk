@@ -170,7 +170,7 @@ namespace IntelligentKioskSample
                 string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
                 var inkRecognizer = new ServiceHelpers.InkRecognizer(key, apiEndpoint, inkRecognitionUrl);
 
-                JsonObject json = inkRecognizer.ConvertInkToJson();
+                var json = inkRecognizer.ConvertInkToJson();
                 var response = await inkRecognizer.RecognizeAsync(json);
                 response.EnsureSuccessStatusCode();
             }

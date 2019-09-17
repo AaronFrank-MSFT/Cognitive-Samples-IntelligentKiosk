@@ -91,9 +91,9 @@ namespace ServiceHelpers
         {
             // For demo purposes and keeping the initially loaded ink consistent a value of 96 for DPI was used
             // For production, it is most likely better to use the device's DPI when generating the request JSON and an example of that is below
-            //var displayInformation = DisplayInformation.GetForCurrentView();
-            //float dpi = displayInformation.LogicalDpi;
-            //float dipsPerMm = GetDipsPerMm(dpi);
+            // var displayInformation = DisplayInformation.GetForCurrentView();
+            // float dpi = displayInformation.LogicalDpi;
+            // float dipsPerMm = GetDipsPerMm(dpi);
 
             float dipsPerMm = GetDipsPerMm(96);
 
