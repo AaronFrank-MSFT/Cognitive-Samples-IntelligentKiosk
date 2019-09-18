@@ -100,6 +100,7 @@ namespace IntelligentKioskSample
                     ImageAnalyzer.PeopleGroupsUserDataFilter = SettingsHelper.Instance.WorkspaceKey;
                     FaceListManager.FaceListsUserDataFilter = SettingsHelper.Instance.WorkspaceKey;
                     CoreUtil.MinDetectableFaceCoveragePercentage = SettingsHelper.Instance.MinDetectableFaceCoveragePercentage;
+                    AnomalyDetectorHelper.ApiKey = SettingsHelper.Instance.AnomalyDetectorApiKey;
                 };
 
                 // callbacks for core library
@@ -163,6 +164,10 @@ namespace IntelligentKioskSample
                 ? CognitiveServiceApiKeyTester.TestComputerVisionApiKeyAsync(SettingsHelper.Instance.VisionApiKey, SettingsHelper.Instance.VisionApiKeyEndpoint)
                 : Task.CompletedTask,
 
+                !string.IsNullOrEmpty(SettingsHelper.Instance.CustomVisionTrainingApiKey)
+                ? CognitiveServiceApiKeyTester.TestCustomVisionTrainingApiKeyAsync(SettingsHelper.Instance.CustomVisionTrainingApiKey, SettingsHelper.Instance.CustomVisionTrainingApiKeyEndpoint)
+                : Task.CompletedTask,
+
                 !string.IsNullOrEmpty(SettingsHelper.Instance.BingSearchApiKey)
                 ? CognitiveServiceApiKeyTester.TestBingSearchApiKeyAsync(SettingsHelper.Instance.BingSearchApiKey)
                 : Task.CompletedTask,
@@ -177,6 +182,10 @@ namespace IntelligentKioskSample
 
                 !string.IsNullOrEmpty(SettingsHelper.Instance.TranslatorTextApiKey)
                 ? CognitiveServiceApiKeyTester.TestTranslatorTextApiKeyAsync(SettingsHelper.Instance.TranslatorTextApiKey)
+                : Task.CompletedTask,
+
+                !string.IsNullOrEmpty(SettingsHelper.Instance.AnomalyDetectorApiKey)
+                ? CognitiveServiceApiKeyTester.TestAnomalyDetectorApiKeyAsync(SettingsHelper.Instance.AnomalyDetectorApiKey)
                 : Task.CompletedTask
             };
 

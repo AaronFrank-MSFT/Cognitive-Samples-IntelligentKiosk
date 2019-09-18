@@ -41,9 +41,10 @@ namespace IntelligentKioskSample
 {
     internal class SettingsHelper : INotifyPropertyChanged
     {
-        public static readonly string DefaultApiEndpoint = "https://westus.api.cognitive.microsoft.com";
-        public static readonly string DefaultInkRecognizerApiEndpoint = "https://api.cognitive.microsoft.com";
         public static readonly string CustomEndpointName = "Custom";
+        public static readonly string DefaultApiEndpoint = "https://westus.api.cognitive.microsoft.com";
+        public static readonly string DefaultCustomVisionApiEndpoint = "https://southcentralus.api.cognitive.microsoft.com";
+        public static readonly string DefaultInkRecognizerApiEndpoint = "https://api.cognitive.microsoft.com";
 
         public static readonly string[] AvailableApiRegions = new string[]
         {
@@ -234,22 +235,34 @@ namespace IntelligentKioskSample
                 this.CustomVisionPredictionApiKey = value.ToString();
             }
 
+            value = ApplicationData.Current.RoamingSettings.Values["CustomVisionPredictionApiKeyEndpoint"];
+            if (value != null)
+            {
+                this.CustomVisionPredictionApiKeyEndpoint = value.ToString();
+            }
+
             value = ApplicationData.Current.RoamingSettings.Values["CustomVisionTrainingApiKey"];
             if (value != null)
             {
                 this.CustomVisionTrainingApiKey = value.ToString();
             }
 
+            value = ApplicationData.Current.RoamingSettings.Values["CustomVisionTrainingApiKeyEndpoint"];
+            if (value != null)
+            {
+                this.CustomVisionTrainingApiKeyEndpoint = value.ToString();
+            }
+
+            value = ApplicationData.Current.RoamingSettings.Values["CustomComputerVisionApiEndpoint"];
+            if (value != null)
+            {
+                this.CustomComputerVisionApiEndpoint = value.ToString();
+            }
+
             value = ApplicationData.Current.RoamingSettings.Values["CustomFaceApiEndpoint"];
             if (value != null)
             {
                 this.CustomFaceApiEndpoint = value.ToString();
-            }
-
-            value = ApplicationData.Current.RoamingSettings.Values["CustomVisionApiEndpoint"];
-            if (value != null)
-            {
-                this.CustomVisionApiEndpoint = value.ToString();
             }
 
             value = ApplicationData.Current.RoamingSettings.Values["CustomTextAnalyticsEndpoint"];
@@ -285,6 +298,12 @@ namespace IntelligentKioskSample
             if (value != null)
             {
                 this.CustomInkRecognizerEndpoint = value.ToString();
+            }
+
+            value = ApplicationData.Current.RoamingSettings.Values["AnomalyDetectorApiKey"];
+            if (value != null)
+            {
+                this.AnomalyDetectorApiKey = value.ToString();
             }
 
             // load mall kiosk demo custom settings from file as the content is too big to be saved as a string-like setting
@@ -377,7 +396,7 @@ namespace IntelligentKioskSample
             get
             {
                 return string.Equals(this.visionApiKeyEndpoint, SettingsHelper.CustomEndpointName, StringComparison.OrdinalIgnoreCase)
-                    ? this.customVisionApiEndpoint
+                    ? this.customComputerVisionApiEndpoint
                     : this.visionApiKeyEndpoint;
             }
             set
@@ -522,6 +541,17 @@ namespace IntelligentKioskSample
             }
         }
 
+        private string customVisionTrainingApiKeyEndpoint = DefaultCustomVisionApiEndpoint;
+        public string CustomVisionTrainingApiKeyEndpoint
+        {
+            get { return this.customVisionTrainingApiKeyEndpoint; }
+            set
+            {
+                this.customVisionTrainingApiKeyEndpoint = value;
+                this.OnSettingChanged("CustomVisionTrainingApiKeyEndpoint", value);
+            }
+        }
+
         private string customVisionPredictionApiKey = string.Empty;
         public string CustomVisionPredictionApiKey
         {
@@ -530,6 +560,17 @@ namespace IntelligentKioskSample
             {
                 this.customVisionPredictionApiKey = value;
                 this.OnSettingChanged("CustomVisionPredictionApiKey", value);
+            }
+        }
+
+        private string customVisionPredictionApiKeyEndpoint = DefaultCustomVisionApiEndpoint;
+        public string CustomVisionPredictionApiKeyEndpoint
+        {
+            get { return this.customVisionPredictionApiKeyEndpoint; }
+            set
+            {
+                this.customVisionPredictionApiKeyEndpoint = value;
+                this.OnSettingChanged("CustomVisionPredictionApiKeyEndpoint", value);
             }
         }
 
@@ -544,14 +585,14 @@ namespace IntelligentKioskSample
             }
         }
 
-        private string customVisionApiEndpoint = string.Empty;
-        public string CustomVisionApiEndpoint
+        private string customComputerVisionApiEndpoint = string.Empty;
+        public string CustomComputerVisionApiEndpoint
         {
-            get { return this.customVisionApiEndpoint; }
+            get { return this.customComputerVisionApiEndpoint; }
             set
             {
-                this.customVisionApiEndpoint = value;
-                this.OnSettingChanged("CustomVisionApiEndpoint", value);
+                this.customComputerVisionApiEndpoint = value;
+                this.OnSettingChanged("CustomComputerVisionApiEndpoint", value);
             }
         }
 
@@ -622,6 +663,41 @@ namespace IntelligentKioskSample
             {
                 this.customInkRecognizerEndpoint = value;
                 this.OnSettingChanged("CustomInkRecognizerEndpoint", value);
+            }
+        }
+
+        private string anomalyDetectorApiKey = string.Empty;
+        public string AnomalyDetectorApiKey
+        {
+            get { return anomalyDetectorApiKey; }
+            set
+            {
+                this.anomalyDetectorApiKey = value;
+                this.OnSettingChanged("AnomalyDetectorApiKey", value);
+            }
+        }
+
+        public string[] AvailableCustomVisionApiEndpoints
+        {
+            get
+            {
+                return new string[]
+                {
+                    CustomEndpointName,
+                    "https://api.cognitive.microsoft.com",
+                    "https://eastus.api.cognitive.microsoft.com",
+                    "https://eastus2.api.cognitive.microsoft.com",
+                    "https://southcentralus.api.cognitive.microsoft.com",
+                    "https://westus2.api.cognitive.microsoft.com",
+                    "https://northcentralus.api.cognitive.microsoft.com",
+                    "https://australiaeast.api.cognitive.microsoft.com",
+                    "https://southeastasia.api.cognitive.microsoft.com",
+                    "https://centralindia.api.cognitive.microsoft.com",
+                    "https://japaneast.api.cognitive.microsoft.com",
+                    "https://northeurope.api.cognitive.microsoft.com",
+                    "https://uksouth.api.cognitive.microsoft.com",
+                    "https://westeurope.api.cognitive.microsoft.com"
+                };
             }
         }
 
