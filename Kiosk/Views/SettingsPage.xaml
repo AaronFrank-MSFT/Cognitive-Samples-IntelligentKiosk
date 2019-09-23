@@ -143,7 +143,7 @@
 
                     <PasswordBox Header="Translator Text API Key" Password="{Binding TranslatorTextApiKey, Mode=TwoWay}" Margin="0,10,0,0" />
 
-                    <PasswordBox Header="Ink Recognizer API Key" Password="{Binding InkRecognizerTextApiKey, Mode=TwoWay}" Margin="0,10,0,0" />
+                    <PasswordBox Header="Ink Recognizer API Key" Password="{Binding InkRecognizerApiKey, Mode=TwoWay}" Margin="0,10,0,0" />
 
                     <PasswordBox Header="Anomaly Detector API Key" Password="{Binding AnomalyDetectorApiKey, Mode=TwoWay}" Margin="0,10,0,0" />
 

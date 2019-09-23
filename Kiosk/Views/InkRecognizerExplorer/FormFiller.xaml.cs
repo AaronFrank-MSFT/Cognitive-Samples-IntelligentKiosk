@@ -113,13 +113,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         }
 
         #region Event Handlers - Page
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
-            {
-                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
-            }
-
             // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
             inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
 

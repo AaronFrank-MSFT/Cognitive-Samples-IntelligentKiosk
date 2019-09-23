@@ -117,25 +117,18 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #region Event Handlers - Page
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            if (string.IsNullOrEmpty(SettingsHelper.Instance.InkRecognizerApiKey))
+            if (!previouslyLoaded)
             {
-                await new MessageDialog("Missing Ink Recognizer API Key. Please enter a key in the Settings page.", "Missing API Key").ShowAsync();
-            }
-            else
-            {
-                if (!previouslyLoaded)
+                var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
+                if (file != null)
                 {
-                    var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/InkRecognitionSampleInstructions.gif"));
-                    if (file != null)
+                    using (var stream = await file.OpenSequentialReadAsync())
                     {
-                        using (var stream = await file.OpenSequentialReadAsync())
-                        {
-                            await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
-                        }
+                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(stream);
                     }
-
-                    previouslyLoaded = true;
                 }
+
+                previouslyLoaded = true;
             }
 
             // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
