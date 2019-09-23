@@ -53,13 +53,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     public sealed partial class FormFiller : Page
     {
-        // API key and endpoint information for ink recognition request
-        string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-        string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
-        const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
-
         private readonly DispatcherTimer dispatcherTimer;
 
+        private string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
         ServiceHelpers.InkRecognizer inkRecognizer;
         InkResponse inkResponse;
         InkCanvas currentCanvas;
@@ -125,7 +121,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
 
             // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
 
             base.OnNavigatedTo(e);
         }

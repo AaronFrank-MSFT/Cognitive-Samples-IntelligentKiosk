@@ -45,18 +45,18 @@ namespace ServiceHelpers
 {
     public class InkRecognizer
     {
-        private string inkRecognitionUrl;
+        private const string endpoint = "https://api.cognitive.microsoft.com";
+        private const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
+
         private HttpClient httpClient;
 
         private IDictionary<uint, InkStroke> StrokeMap { get; set; }
         private string LanguageCode;
 
-        public InkRecognizer(string subscriptionKey, string endpoint, string inkRecognitionUrl)
+        public InkRecognizer(string subscriptionKey)
         {
             this.httpClient = new HttpClient() { BaseAddress = new Uri(endpoint) };
             this.httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
-
-            this.inkRecognitionUrl = inkRecognitionUrl;
 
             this.StrokeMap = new Dictionary<uint, InkStroke>();
             this.LanguageCode = "en-US";

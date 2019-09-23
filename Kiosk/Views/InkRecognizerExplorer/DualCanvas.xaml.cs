@@ -60,11 +60,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
     {
         private bool previouslyLoaded = false;
 
-        // API key and endpoint information for ink recognition request
         private string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
-        private string endpoint = SettingsHelper.Instance.InkRecognizerApiKeyEndpoint;
-        private const string inkRecognitionUrl = "/inkrecognizer/v1.0-preview/recognize";
-
         private ServiceHelpers.InkRecognizer inkRecognizer;
         private InkResponse inkResponse;
 
@@ -144,7 +140,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
             // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey, endpoint, inkRecognitionUrl);
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
 
             var resultCanvas = new CanvasControl();
             resultCanvas.Name = "resultCanvas";
