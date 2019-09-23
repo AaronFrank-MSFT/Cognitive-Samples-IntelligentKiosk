@@ -37,6 +37,7 @@ using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -85,6 +86,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             this.InitializeComponent();
             this.NavigationCacheMode = NavigationCacheMode.Enabled;
 
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
+
             recoTreeNodes = new Dictionary<int, InkRecognitionUnit>();
             recoTreeParentNodes = new List<InkRecognitionUnit>();
             recoText = new Dictionary<int, Tuple<string, Color>>();
@@ -131,10 +134,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 previouslyLoaded = true;
             }
 
-            // When the page is Unloaded, InkRecognizer and the Win2D CanvasControl are disposed. To preserve the state of the page we need to re-instantiate these objects.
+            // When the page is Unloaded, the Win2D CanvasControl is disposed. To preserve the state of the page we need to re-instantiate this object.
             // In the case of the Win2D CanvasControl, a new UI Element needs to be created/appended to the page as well
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
-
             var resultCanvas = new CanvasControl();
             resultCanvas.Name = "resultCanvas";
             resultCanvas.Draw += ResultCanvas_Draw;
@@ -149,9 +150,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         void Page_Unloaded(object sender, RoutedEventArgs e)
         {
-            // Calling Dispose() on InkRecognizer to dispose of resources being used by HttpClient
-            inkRecognizer.Dispose();
-
             // Dispose Win2D resources to avoid memory leak
             // Reference: https://microsoft.github.io/Win2D/html/RefCycles.htm
             var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
@@ -278,8 +276,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
                 inkRecognizer.ClearStrokes();
                 inkRecognizer.AddStrokes(strokes);
-                JsonObject json = inkRecognizer.ConvertInkToJson();
-                requestJson.Text = FormatJson(json.Stringify());
+                JObject json = inkRecognizer.ConvertInkToJson();
+                requestJson.Text = FormatJson(json.ToString());
 
                 try
                 {

@@ -34,6 +34,7 @@
 
 using IntelligentKioskSample.Models.InkRecognizerExplorer;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -89,6 +90,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             this.InitializeComponent();
             this.NavigationCacheMode = NavigationCacheMode.Enabled;
 
+            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
+
             redoStacks = new Dictionary<string, Stack<InkStroke>>();
             clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
             activeTool = ballpointPen;
@@ -111,22 +114,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             dispatcherTimer.Tick += DispatcherTimer_Tick;
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
         }
-
-        #region Event Handlers - Page
-        protected override void OnNavigatedTo(NavigationEventArgs e)
-        {
-            // When the page is Unloaded, InkRecognizer is disposed. To preserve the state of the page when navigating back to it, we need to re-instantiate the object.
-            inkRecognizer = new ServiceHelpers.InkRecognizer(subscriptionKey);
-
-            base.OnNavigatedTo(e);
-        }
-
-        void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            // Calling Dispose() on InkRecognizer to dispose of resources being used by HttpClient
-            inkRecognizer.Dispose();
-        }
-        #endregion
 
         #region Event Handlers - Canvas, Timer, Form Field
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
@@ -185,7 +172,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
             inkRecognizer.ClearStrokes();
             inkRecognizer.AddStrokes(strokes);
-            JsonObject json = inkRecognizer.ConvertInkToJson();
+            JObject json = inkRecognizer.ConvertInkToJson();
 
             // Recognize the strokes of the current ink canvas and convert the response JSON into an InkResponse
             var response = await inkRecognizer.RecognizeAsync(json);

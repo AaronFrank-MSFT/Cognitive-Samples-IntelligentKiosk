@@ -243,7 +243,7 @@ namespace IntelligentKioskSample
 
             var inkRecognizer = new ServiceHelpers.InkRecognizer(key);
 
-            var json = inkRecognizer.ConvertInkToJson();
+            JObject json = inkRecognizer.ConvertInkToJson();
             var response = await inkRecognizer.RecognizeAsync(json);
             response.EnsureSuccessStatusCode();
         }
