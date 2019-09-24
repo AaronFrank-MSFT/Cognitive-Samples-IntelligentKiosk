@@ -57,7 +57,7 @@ using Windows.UI.Xaml.Navigation;
 
 namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
-    public sealed partial class DualCanvas : Page
+    public sealed partial class InkMirror : Page
     {
         private bool previouslyLoaded = false;
 
@@ -81,7 +81,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private Symbol Redo = (Symbol)0xE7A6;
         private Symbol ClearAll = (Symbol)0xE74D;
 
-        public DualCanvas()
+        public InkMirror()
         {
             this.InitializeComponent();
             this.NavigationCacheMode = NavigationCacheMode.Enabled;

@@ -57,7 +57,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
             else
             {
-                frame.SourcePageType = typeof(DualCanvas);
+                frame.SourcePageType = typeof(InkMirror);
                 navView.SelectedItem = navView.MenuItems[0];
             }
 
@@ -70,10 +70,10 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             switch (item.Name)
             {
-                case "dualMode":
-                    frame.Navigate(typeof(DualCanvas));
+                case "inkMirror":
+                    frame.Navigate(typeof(InkMirror));
                     break;
-                case "formMode":
+                case "formFiller":
                     frame.Navigate(typeof(FormFiller));
                     break;
             }
