@@ -72,7 +72,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             "year",
             "make",
             "model",
-            "mileage",
             "license",
             "date",
             "time",
@@ -84,7 +83,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         private Symbol Undo = (Symbol)0xE7A7;
         private Symbol Redo = (Symbol)0xE7A6;
         private Symbol ClearAll = (Symbol)0xE74D;
-        
+        private Symbol Car = (Symbol)0xE804;
+
         public FormFiller()
         {
             this.InitializeComponent();
@@ -94,7 +94,12 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             redoStacks = new Dictionary<string, Stack<InkStroke>>();
             clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
+            currentCanvas = yearCanvas;
             activeTool = ballpointPen;
+
+            // Set default ink color to blue
+            ballpointPen.SelectedBrushIndex = 16;
+            pencil.SelectedBrushIndex = 16;
 
             // Add event handlers and create redo stacks for each form field's ink canvases
             foreach (string prefix in prefixes)
@@ -122,13 +127,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
-
-            var formField = this.FindName($"{prefix}") as Grid;
-            if (formField.Tag.ToString() == "accepted")
-            {
-                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                formField.Tag = "pending";
-            }
 
             clearedStrokesLists[prefix].Clear();
             inkCleared = false;
@@ -207,33 +205,19 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void FormField_PointerPressed(object sender, PointerRoutedEventArgs e)
         {
+            foreach (string prefix in prefixes)
+            {
+                ToggleFormFieldText(prefix);
+            }
+
             var formField = sender as Grid;
-            string prefix = formField.Name;
-            var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
+            string canvasPrefix = formField.Name;
 
-            if (canvasGrid.Visibility == Visibility.Collapsed)
-            {
-                CollapseAllFormFields();
-                canvasGrid.Visibility = Visibility.Visible;
+            ToggleFormFieldCanvas(canvasPrefix);
 
-                if (formField.Tag.ToString() == "pending")
-                {
-                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                }
-
-                var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
-                inkToolbar.TargetInkCanvas = canvas;
-                currentCanvas = canvas;
-            }
-            else
-            {
-                if (formField.Tag.ToString() == "pending")
-                {
-                    formField.BorderBrush = new SolidColorBrush(Colors.White);
-                }
-
-                canvasGrid.Visibility = Visibility.Collapsed;
-            }
+            var canvas = this.FindName($"{canvasPrefix}Canvas") as InkCanvas;
+            inkToolbar.TargetInkCanvas = canvas;
+            currentCanvas = canvas;
         }
         #endregion
 
@@ -242,16 +226,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         {
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
-
-            int index = currentCanvas.Name.IndexOf("Canvas");
-            string prefix = currentCanvas.Name.Substring(0, index);
-
-            var formField = this.FindName($"{prefix}") as Grid;
-
-            formField.BorderBrush = new SolidColorBrush(Colors.LightGreen);
-            formField.Tag = "accepted";
-            CollapseAllFormFields();
-            NavigateToNextField(prefix);
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
@@ -263,13 +237,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
-
-            var formField = this.FindName($"{prefix}") as Grid;
-            if (formField.Tag.ToString() == "accepted")
-            {
-                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                formField.Tag = "pending";
-            }
 
             if (inkCleared)
             {
@@ -315,13 +282,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 var stroke = redoStacks[prefix].Pop();
 
                 currentCanvas.InkPresenter.StrokeContainer.AddStroke(stroke.Clone());
-
-                var formField = this.FindName($"{prefix}") as Grid;
-                if (formField.Tag.ToString() == "accepted")
-                {
-                    formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                    formField.Tag = "pending";
-                }
             }
         }
 
@@ -332,13 +292,6 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
-
-            var formField = this.FindName($"{prefix}") as Grid;
-            if (formField.Tag.ToString() == "accepted")
-            {
-                formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
-                formField.Tag = "pending";
-            }
 
             var strokes = currentCanvas.InkPresenter.StrokeContainer.GetStrokes();
             foreach (var stroke in strokes)
@@ -375,71 +328,40 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #endregion
 
         #region Helpers
-        private void CollapseAllFormFields()
+        private void ToggleFormFieldText(string prefix)
         {
-            foreach (string prefix in prefixes)
-            {
-                var formField = this.FindName($"{prefix}") as Grid;
-                var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
+            var canvasGrid = this.FindName($"{prefix}CanvasGrid") as Grid;
+            canvasGrid.Visibility = Visibility.Collapsed;
 
-                canvasGrid.Visibility = Visibility.Collapsed;
+            var textResult = this.FindName($"{prefix}Result") as TextBlock;
+            textResult.Visibility = Visibility.Visible;
 
-                if (formField.Tag.ToString() == "pending")
-                {
-                    formField.BorderBrush = new SolidColorBrush(Colors.White);
-                }
-            }
+            var formfield = this.FindName(prefix) as Grid;
+            var color = GetColorFromHex("#1F1F1F");
+            formfield.Background = new SolidColorBrush(color);
         }
 
-        private void NavigateToNextField(string prefix)
+        private void ToggleFormFieldCanvas(string prefix)
         {
-            // Iterate form fields to find the field that was just "accepted" and find the first field after it that isn't "accepted"
-            for (int i = 0; i < prefixes.Length; i++)
-            {
-                if (prefixes[i] == prefix && i != (prefixes.Length - 1))
-                {
-                    string nextFieldPrefix = prefixes[i + 1];
-                    var nextFormField = this.FindName($"{nextFieldPrefix}") as Grid;
+            var textResult = this.FindName($"{prefix}Result") as TextBlock;
+            textResult.Visibility = Visibility.Collapsed;
 
-                    if (nextFormField.Tag.ToString() == "pending")
-                    {
-                        ActivateFormField(nextFieldPrefix);
-                    }
-                    else if (nextFormField.Tag.ToString() == "accepted")
-                    {
-                        prefix = nextFieldPrefix;
-                    }
-                }
-                else if (prefixes[i] == prefix && i == (prefixes.Length - 1))
-                {
-                    // If the last form field is "accepted" then find the first form field that it isn't from the beginning of the form and activate it
-                    var nextFormField = this.FindName($"{prefix}") as Grid;
-                    if (nextFormField.Tag.ToString() == "accepted")
-                    {
-                        foreach (string fieldPrefix in prefixes)
-                        {
-                            var formField = this.FindName($"{fieldPrefix}") as Grid;
-                            if (formField.Tag.ToString() == "pending")
-                            {
-                                ActivateFormField(fieldPrefix);
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void ActivateFormField(string prefix)
-        {
-            var formField = this.FindName($"{prefix}") as Grid;
-            var canvasGrid = this.FindName($"{prefix}Grid") as Grid;
-            var canvas = this.FindName($"{prefix}Canvas") as InkCanvas;
-
-            formField.BorderBrush = new SolidColorBrush(Colors.Yellow);
+            var canvasGrid = this.FindName($"{prefix}CanvasGrid") as Grid;
             canvasGrid.Visibility = Visibility.Visible;
-            inkToolbar.TargetInkCanvas = canvas;
-            currentCanvas = canvas;
+
+            var formfield = this.FindName(prefix) as Grid;
+            var color = GetColorFromHex("#2B2B2B");
+            formfield.Background = new SolidColorBrush(color);
+        }
+
+        private Color GetColorFromHex(string hexCode)
+        {
+            byte a = 255;
+            byte r = Convert.ToByte(hexCode.Substring(1, 2), 16);
+            byte g = Convert.ToByte(hexCode.Substring(3, 2), 16);
+            byte b = Convert.ToByte(hexCode.Substring(5, 2), 16);
+
+            return Color.FromArgb(a, r, g, b);
         }
         #endregion
     }
