@@ -54,7 +54,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 {
     public sealed partial class FormFiller : Page
     {
-        private readonly DispatcherTimer dispatcherTimer;
+        private readonly DispatcherTimer inkRecoTimer;
+        private readonly DispatcherTimer textToggleTimer;
 
         private string subscriptionKey = SettingsHelper.Instance.InkRecognizerApiKey;
         ServiceHelpers.InkRecognizer inkRecognizer;
@@ -95,6 +96,7 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             redoStacks = new Dictionary<string, Stack<InkStroke>>();
             clearedStrokesLists = new Dictionary<string, List<InkStroke>>();
             currentCanvas = yearCanvas;
+            inkToolbar.TargetInkCanvas = currentCanvas;
             activeTool = ballpointPen;
 
             // Set default ink color to blue
@@ -115,15 +117,21 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
 
             // Timer created for ink recognition to happen after a set time period once a stroke ends
-            dispatcherTimer = new DispatcherTimer();
-            dispatcherTimer.Tick += DispatcherTimer_Tick;
-            dispatcherTimer.Interval = TimeSpan.FromMilliseconds(350);
+            inkRecoTimer = new DispatcherTimer();
+            inkRecoTimer.Tick += InkRecoTimer_Tick;
+            inkRecoTimer.Interval = TimeSpan.FromMilliseconds(350);
+
+            // Timer created to switch from ink to text when user is idle in form field after a set time
+            textToggleTimer = new DispatcherTimer();
+            textToggleTimer.Tick += TextToggleTimer_Tick;
+            textToggleTimer.Interval = TimeSpan.FromSeconds(3);
         }
 
         #region Event Handlers - Canvas, Timer, Form Field
         private void InkPresenter_StrokeInputStarted(InkStrokeInput sender, PointerEventArgs args)
         {
-            dispatcherTimer.Stop();
+            inkRecoTimer.Stop();
+            textToggleTimer.Stop();
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
@@ -136,12 +144,14 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void InkPresenter_StrokeInputEnded(InkStrokeInput sender, PointerEventArgs args)
         {
-            dispatcherTimer.Start();
+            inkRecoTimer.Start();
+            textToggleTimer.Start();
         }
 
         private void InkPresenter_StrokeErased(InkPresenter sender, InkStrokesErasedEventArgs args)
         {
-            dispatcherTimer.Start();
+            inkRecoTimer.Start();
+            textToggleTimer.Start();
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
@@ -159,9 +169,9 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
-        private async void DispatcherTimer_Tick(object sender, object e)
+        private async void InkRecoTimer_Tick(object sender, object e)
         {
-            dispatcherTimer.Stop();
+            inkRecoTimer.Stop();
 
             int index = currentCanvas.Name.IndexOf("Canvas");
             string prefix = currentCanvas.Name.Substring(0, index);
@@ -203,6 +213,16 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
             }
         }
 
+        private void TextToggleTimer_Tick(object sender, object e)
+        {
+            textToggleTimer.Stop();
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            ToggleFormFieldText(prefix);
+        }
+
         private void FormField_PointerPressed(object sender, PointerRoutedEventArgs e)
         {
             foreach (string prefix in prefixes)
@@ -224,13 +244,21 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
         #region Event Handlers - Canvas and Toolbar Butttons
         private void AcceptButton_Click(object sender, RoutedEventArgs e)
         {
+            textToggleTimer.Stop();
+
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
+
+            int index = currentCanvas.Name.IndexOf("Canvas");
+            string prefix = currentCanvas.Name.Substring(0, index);
+
+            ToggleFormFieldText(prefix);
         }
 
         private void UndoButton_Click(object sender, RoutedEventArgs e)
         {
-            dispatcherTimer.Start();
+            inkRecoTimer.Start();
+            textToggleTimer.Start();
 
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;
@@ -269,7 +297,8 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
 
         private void RedoButton_Click(object sender, RoutedEventArgs e)
         {
-            dispatcherTimer.Start();
+            inkRecoTimer.Start();
+            textToggleTimer.Start();
 
             var button = sender as InkToolbarCustomToolButton;
             button.IsChecked = false;

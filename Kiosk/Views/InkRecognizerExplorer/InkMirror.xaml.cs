@@ -289,37 +289,38 @@ namespace IntelligentKioskSample.Views.InkRecognizerExplorer
                 JObject json = inkRecognizer.ConvertInkToJson();
                 requestJsonText.Text = FormatJson(json.ToString());
 
-                try
+                // Recognize Ink from JSON and display response
+                var response = await inkRecognizer.RecognizeAsync(json);
+                string responseString = await response.Content.ReadAsStringAsync();
+                inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
+
+                if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    // Recognize Ink from JSON and display response
-                    var response = await inkRecognizer.RecognizeAsync(json);
-                    string responseString = await response.Content.ReadAsStringAsync();
-                    inkResponse = JsonConvert.DeserializeObject<InkResponse>(responseString);
+                    // Generate JSON tree view and draw result on right side canvas
+                    CreateJsonTree();
+                    responseJsonText.Text = FormatJson(responseString);
 
-                    if (response.StatusCode == HttpStatusCode.OK)
+                    try
                     {
-                        // Generate JSON tree view and draw result on right side canvas
-                        CreateJsonTree();
-                        responseJsonText.Text = FormatJson(responseString);
-
                         var resultCanvas = this.FindName("resultCanvas") as CanvasControl;
                         resultCanvas.Invalidate();
                     }
-                    else
+                    catch (NullReferenceException)
                     {
-                        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
-                        {
-                            await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
-                        }
-                        else
-                        {
-                            await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
-                        }
+                        // This occurs when the page is changed before recognition finishes. 
+                        // Since the result canvas gets disposed when navigating away it becomes null.
                     }
                 }
-                catch (TaskCanceledException)
+                else
                 {
-                    // This may occur when a user attempts to navigate to another page during recognition. In this case, we just want to continue on to the selected page
+                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        await new MessageDialog("Access denied due to invalid subscription key or wrong API endpoint. Make sure to provide a valid key for an active subscription and use a correct API endpoint in the Settings page.", $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                    }
+                    else
+                    {
+                        await new MessageDialog(inkResponse.Error.message, $"Response Code: {inkResponse.Error.code}").ShowAsync();
+                    }
                 }
 
                 // Re-enable use of toolbar after recognition and rendering
